@@ -1,7 +1,13 @@
 import os
 
+import eventlet
+eventlet.monkey_patch()
+import psycogreen.eventlet
+psycogreen.eventlet.patch_psycopg()
+
 from flask import Flask, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.pool import NullPool
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit #Nuevo: Importamos SocketIO para la comunicación en tiempo real
 from sqlalchemy import func
@@ -14,25 +20,16 @@ CORS(app)
 # NUEVO: Inicializamos SocketIO conectado a nuestra app de Flask
 socketio = SocketIO(app, cors_allowed_origins="*")
 
-import ssl
-
 # Configuración de base de datos
 database_url = os.environ.get('DATABASE_URL', 'sqlite:///kiosco_postres.db')
 # SQLAlchemy requiere 'postgresql://' en lugar de 'postgres://' (que dan algunos proveedores)
 if database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql://", 1)
 
-# Para usar eventlet (WebSockets) de manera segura con Postgres, necesitamos pg8000
-if database_url.startswith("postgresql://"):
-    database_url = database_url.replace("postgresql://", "postgresql+pg8000://", 1)
-    if "?" in database_url:
-        database_url = database_url.split("?")[0]
-    
-    ssl_context = ssl.create_default_context()
-    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {'connect_args': {'ssl_context': ssl_context}}
-
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+# Solución definitiva para el error de "lock" con eventlet y psycopg2
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {'poolclass': NullPool}
 
 db = SQLAlchemy(app)
 
