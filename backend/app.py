@@ -305,9 +305,10 @@ def agregar_producto():
 
 
 
+# Esto crea las tablas automáticamente si no existen
+with app.app_context():
+    db.create_all()
+
 if __name__ == '__main__':
-    # Esto crea las tablas en MySQL automáticamente si no existen
-    with app.app_context():
-        db.create_all()
     
     socketio.run(app, debug=True, port=5000, allow_unsafe_werkzeug=True)
