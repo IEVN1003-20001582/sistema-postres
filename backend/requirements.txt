@@ -2,5 +2,5 @@ Flask
 Flask-SQLAlchemy
 Flask-Cors
 Flask-SocketIO
-gunicorn
+gunicorn==21.2.0
 eventlet
