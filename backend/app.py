@@ -14,6 +14,8 @@ CORS(app)
 # NUEVO: Inicializamos SocketIO conectado a nuestra app de Flask
 socketio = SocketIO(app, cors_allowed_origins="*")
 
+import ssl
+
 # Configuración de base de datos
 database_url = os.environ.get('DATABASE_URL', 'sqlite:///kiosco_postres.db')
 # SQLAlchemy requiere 'postgresql://' en lugar de 'postgres://' (que dan algunos proveedores)
@@ -23,6 +25,11 @@ if database_url.startswith("postgres://"):
 # Para usar eventlet (WebSockets) de manera segura con Postgres, necesitamos pg8000
 if database_url.startswith("postgresql://"):
     database_url = database_url.replace("postgresql://", "postgresql+pg8000://", 1)
+    if "?" in database_url:
+        database_url = database_url.split("?")[0]
+    
+    ssl_context = ssl.create_default_context()
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {'connect_args': {'ssl_context': ssl_context}}
 
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
