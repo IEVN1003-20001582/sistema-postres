@@ -68,6 +68,7 @@ class Orden(db.Model):
     __tablename__ = 'ordenes'
     id = db.Column(db.Integer, primary_key=True)
     negocio_id = db.Column(db.Integer, db.ForeignKey('negocios.id'), nullable=False)
+    nombre_cliente = db.Column(db.String(100), nullable=True) # NUEVO: Para identificar de quién es la orden
     total = db.Column(db.Float, nullable=False)
     estado = db.Column(db.String(20), default="PENDIENTE") # PENDIENTE, LISTO, ENTREGADO
     # Relación para acceder a los postres de esta orden
@@ -123,7 +124,7 @@ def crear_orden():
             return jsonify({"status": "error", "mensaje": "El carrito está vacío"}), 400
 
         # 1. Creamos el registro general de la Orden
-        nueva_orden = Orden(negocio_id=1, total=total)
+        nueva_orden = Orden(negocio_id=1, total=float(datos['total']), nombre_cliente=datos.get('nombre_cliente', 'Sin nombre'))
         db.session.add(nueva_orden)
         db.session.flush() # Guardamos temporalmente para obtener el ID
 
@@ -189,20 +190,13 @@ def ordenes_pendientes():
         ordenes = Orden.query.filter_by(estado='PENDIENTE').all()
         lista_ordenes = []
         
-        for orden in ordenes:
-            detalles_orden = []
-            # Buscamos qué postres tiene esta orden específica
-            for detalle in orden.detalles:
-                producto = Producto.query.get(detalle.producto_id)
-                detalles_orden.append({
-                    "nombre": producto.nombre,
-                    "cantidad": detalle.cantidad
-                })
-                
+        for o in ordenes:
             lista_ordenes.append({
-                "id": orden.id,
-                "estado": orden.estado,
-                "detalles": detalles_orden
+                "id": o.id,
+                "nombre_cliente": o.nombre_cliente,
+                "total": o.total,
+                "estado": o.estado,
+                "detalles": [{"nombre": d.producto.nombre, "cantidad": d.cantidad} for d in o.detalles]
             })
             
         return jsonify(lista_ordenes)

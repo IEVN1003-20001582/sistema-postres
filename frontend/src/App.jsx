@@ -21,6 +21,7 @@ function App() {
   const [ordenesCocina, setOrdenesCocina] = useState([]);
   const [datosDashboard, setDatosDashboard] = useState({ ventas_totales: 0, total_ordenes: 0, inventario: [] });
   const [ticketActual, setTicketActual] = useState(null);
+  const [nombreCliente, setNombreCliente] = useState(''); // NUEVO: Para guardar el nombre
   const [conectado, setConectado] = useState(true);
 
   // NUEVO: Estados para el panel de administración
@@ -61,11 +62,12 @@ function App() {
   const totalOrden = carrito.reduce((suma, item) => suma + (item.precio * item.cantidad), 0);
 
   const enviarOrden = async () => {
+    if (!nombreCliente.trim()) return alert("Por favor ingresa tu nombre para llamarte cuando esté listo.");
     try {
       const respuesta = await fetch(`${API_URL}/api/ordenes`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ carrito: carrito, total: totalOrden })
+        body: JSON.stringify({ carrito: carrito, total: totalOrden, nombre_cliente: nombreCliente })
       });
       const datos = await respuesta.json();
       
@@ -74,6 +76,7 @@ function App() {
         setTicketActual(datos.orden_id);
         setPantalla('exito');
         setCarrito([]); 
+        setNombreCliente(''); // Limpiamos el nombre
         cargarDashboard(); // Actualizamos las ventas en el panel
       } else {
         alert("Error: " + datos.mensaje);
@@ -331,7 +334,7 @@ function App() {
             <AnimatePresence>
               {ordenesCocina.map((orden) => (
                 <motion.div key={orden.id} initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.5 }} className="bg-gray-800 rounded-3xl p-6 border-4 border-orange-500 flex flex-col justify-between shadow-[0_0_20px_rgba(249,115,22,0.3)] relative overflow-hidden">
-                  <div className="absolute top-0 left-0 bg-orange-500 text-white font-black text-xl px-4 py-1 rounded-br-2xl">TICKET #{orden.id}</div>
+                  <div className="absolute top-0 left-0 bg-orange-500 text-white font-black text-xl px-4 py-1 rounded-br-2xl">#{orden.id} - {orden.nombre_cliente}</div>
                   <div className="mt-10 mb-6 space-y-3">
                     {orden.detalles.map((item, index) => (
                       <div key={index} className="flex items-center text-2xl text-white bg-gray-700 p-3 rounded-xl">
@@ -384,6 +387,13 @@ function App() {
           )}
         </div>
         <div className="pt-6 border-t-4 border-gray-100 mt-4">
+          <input 
+            type="text" 
+            placeholder="¿Cuál es tu nombre?" 
+            value={nombreCliente} 
+            onChange={(e) => setNombreCliente(e.target.value)}
+            className="w-full text-2xl p-4 mb-4 border-4 border-purple-200 rounded-2xl outline-none focus:border-purple-500 font-bold text-gray-700"
+          />
           <div className="flex justify-between items-center mb-6"><span className="text-2xl font-bold text-gray-600">TOTAL:</span><span className="text-4xl font-black text-green-600">${totalOrden.toFixed(2)}</span></div>
           <motion.button onClick={enviarOrden} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.95 }} disabled={carrito.length === 0} className={`w-full text-white text-3xl font-black py-6 rounded-2xl shadow-[0_8px_0_0_rgba(0,0,0,0.2)] active:translate-y-2 transition-all duration-75 ${carrito.length === 0 ? 'bg-gray-300 shadow-[0_8px_0_0_rgba(156,163,175,1)] cursor-not-allowed' : 'bg-green-500 shadow-[0_8px_0_0_rgba(21,128,61,1)]'}`}>
             CONFIRMAR ORDEN ✅
