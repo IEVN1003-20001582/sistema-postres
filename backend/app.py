@@ -5,10 +5,11 @@ from flask import Flask, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.pool import NullPool
 from flask_cors import CORS
-from flask_socketio import SocketIO, emit #Nuevo: Importamos SocketIO para la comunicación en tiempo real
+from flask_socketio import SocketIO, emit
 from sqlalchemy import func
 
 import os
+from datetime import datetime, timedelta
 
 app = Flask(__name__)
 CORS(app)
@@ -70,6 +71,7 @@ class Orden(db.Model):
     negocio_id = db.Column(db.Integer, db.ForeignKey('negocios.id'), nullable=False)
     nombre_cliente = db.Column(db.String(100), nullable=True) # NUEVO: Para identificar de quién es la orden
     total = db.Column(db.Float, nullable=False)
+    fecha = db.Column(db.DateTime, default=datetime.utcnow) # NUEVO: Fecha y hora exacta de la orden
     estado = db.Column(db.String(20), default="PENDIENTE") # PENDIENTE, LISTO, ENTREGADO
     # Relación para acceder a los postres de esta orden
     detalles = db.relationship('OrdenDetalle', backref='orden', lazy=True)
@@ -234,12 +236,23 @@ def completar_orden(orden_id):
 @app.route('/api/dashboard', methods=['GET'])
 def obtener_dashboard():
     try:
-        # 1. Calculamos el total de ingresos (sumando el 'total' de todas las órdenes)
-        # Usamos scalar() para que nos devuelva el número directo, si no hay ventas devuelve 0
-        ventas_totales = db.session.query(func.sum(Orden.total)).scalar() or 0.0
+        filtro = request.args.get('filtro', 'hoy') # hoy, semana, mes, todo
         
-        # 2. Contamos cuántas órdenes se han hecho
-        total_ordenes = Orden.query.count()
+        query = db.session.query(Orden)
+        hoy = datetime.utcnow()
+        
+        if filtro == 'hoy':
+            inicio = hoy.replace(hour=0, minute=0, second=0, microsecond=0)
+            query = query.filter(Orden.fecha >= inicio)
+        elif filtro == 'semana':
+            inicio = (hoy - timedelta(days=hoy.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
+            query = query.filter(Orden.fecha >= inicio)
+        elif filtro == 'mes':
+            inicio = hoy.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            query = query.filter(Orden.fecha >= inicio)
+            
+        ventas_totales = db.session.query(func.sum(Orden.total)).filter(Orden.id.in_([o.id for o in query.all()])).scalar() or 0.0
+        total_ordenes = query.count()
         
         # 3. Traemos el inventario para ver qué se está acabando
         insumos_db = Insumo.query.all()

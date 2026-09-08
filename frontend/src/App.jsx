@@ -29,6 +29,7 @@ function App() {
   const [cantidadReabastecer, setCantidadReabastecer] = useState({});
   const [nuevoInsumo, setNuevoInsumo] = useState({ nombre: '', unidad_medida: '', stock_inicial: '' });
   const [recetaForm, setRecetaForm] = useState({ producto_id: '', insumo_id: '', cantidad: '' });
+  const [filtroVentas, setFiltroVentas] = useState('hoy');
 
   // ==========================================
   // FUNCIONES GENERALES
@@ -113,12 +114,13 @@ function App() {
 
   // ==========================================
   // FUNCIONES DEL DASHBOARD (ADMIN)
-  // ==========================================
-  const cargarDashboard = () => {
-    fetch(`${API_URL}/api/dashboard`)
-      .then(res => res.json())
-      .then(datos => { if(datos.status === 'success') setDatosDashboard(datos); })
-      .catch(err => console.error("Error al cargar dashboard:", err));
+  // ==========================================  
+  const cargarDashboard = async (filtro = filtroVentas) => {
+    try {
+      const respuesta = await fetch(`${API_URL}/api/dashboard?filtro=${filtro}`);
+      const datos = await respuesta.json();
+      if(datos.status === 'success') setDatosDashboard(datos);
+    } catch (err) { console.error("Error al cargar dashboard:", err); }
   };
 
   const manejarCrearProducto = async (e) => {
@@ -202,6 +204,7 @@ function App() {
   // ==========================================
   useEffect(() => {
     cargarProductos();
+    cargarDashboard(filtroVentas);
   }, []);
 
   useEffect(() => {
@@ -274,12 +277,20 @@ function App() {
           </div>
 
           <div className="bg-gradient-to-br from-green-500 to-green-700 rounded-2xl p-6 shadow-lg text-white">
-            <h3 className="text-xl font-bold opacity-80 mb-1">INGRESOS TOTALES</h3>
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="text-xl font-bold opacity-80">INGRESOS</h3>
+              <div className="flex bg-green-900 rounded-lg overflow-hidden text-sm font-bold">
+                <button onClick={() => { setFiltroVentas('hoy'); cargarDashboard('hoy'); }} className={`px-3 py-1 ${filtroVentas === 'hoy' ? 'bg-white text-green-700' : 'text-green-300 hover:bg-green-800'}`}>Hoy</button>
+                <button onClick={() => { setFiltroVentas('semana'); cargarDashboard('semana'); }} className={`px-3 py-1 ${filtroVentas === 'semana' ? 'bg-white text-green-700' : 'text-green-300 hover:bg-green-800'}`}>Sem</button>
+                <button onClick={() => { setFiltroVentas('mes'); cargarDashboard('mes'); }} className={`px-3 py-1 ${filtroVentas === 'mes' ? 'bg-white text-green-700' : 'text-green-300 hover:bg-green-800'}`}>Mes</button>
+                <button onClick={() => { setFiltroVentas('todo'); cargarDashboard('todo'); }} className={`px-3 py-1 ${filtroVentas === 'todo' ? 'bg-white text-green-700' : 'text-green-300 hover:bg-green-800'}`}>Todo</button>
+              </div>
+            </div>
             <p className="text-5xl font-black">${datosDashboard.ventas_totales.toFixed(2)}</p>
           </div>
           
           <div className="bg-gradient-to-br from-blue-500 to-blue-700 rounded-2xl p-6 shadow-lg text-white">
-            <h3 className="text-xl font-bold opacity-80 mb-1">ÓRDENES COMPLETADAS</h3>
+            <h3 className="text-xl font-bold opacity-80 mb-1">ÓRDENES ({filtroVentas.toUpperCase()})</h3>
             <p className="text-5xl font-black">{datosDashboard.total_ordenes}</p>
           </div>
 
