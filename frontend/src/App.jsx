@@ -30,6 +30,9 @@ function App() {
   const [nuevoInsumo, setNuevoInsumo] = useState({ nombre: '', unidad_medida: '', stock_inicial: '' });
   const [recetaForm, setRecetaForm] = useState({ producto_id: '', insumo_id: '', cantidad: '' });
   const [filtroVentas, setFiltroVentas] = useState('hoy');
+  const [mostrarGuia, setMostrarGuia] = useState(false);
+  const [pasoGuia, setPasoGuia] = useState(1);
+  const [filtroGuia, setFiltroGuia] = useState('');
 
   // ==========================================
   // FUNCIONES GENERALES
@@ -426,6 +429,40 @@ function App() {
             </AnimatePresence>
           )}
         </div>
+
+        {/* MODAL GUÍA INTERACTIVA */}
+        {mostrarGuia && (
+          <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+            <motion.div initial={{ scale: 0.8, opacity: 0, y: 50 }} animate={{ scale: 1, opacity: 1, y: 0 }} className="bg-white rounded-3xl p-8 max-w-lg w-full text-center border-8 border-pink-400 relative">
+              <button onClick={() => { setMostrarGuia(false); setFiltroGuia(''); }} className="absolute top-4 right-4 bg-gray-200 text-gray-700 w-10 h-10 rounded-full font-bold text-xl hover:bg-gray-300">X</button>
+              
+              <div className="text-6xl mb-4">🧙‍♂️</div>
+              <h2 className="text-3xl font-black text-pink-600 mb-6">Elige tu Aventura Dulce</h2>
+
+              {pasoGuia === 1 && (
+                <div className="space-y-4">
+                  <p className="text-xl font-bold text-gray-700 mb-6">¿Qué se te antoja hoy?</p>
+                  <button onClick={() => setPasoGuia(2)} className="w-full bg-blue-100 border-4 border-blue-400 text-blue-700 font-bold text-2xl py-4 rounded-2xl hover:bg-blue-200 transition-colors">🧊 Algo Fresco y Frío</button>
+                  <button onClick={() => setPasoGuia(3)} className="w-full bg-orange-100 border-4 border-orange-400 text-orange-700 font-bold text-2xl py-4 rounded-2xl hover:bg-orange-200 transition-colors">🔥 Algo Horneado o Caliente</button>
+                </div>
+              )}
+
+              {pasoGuia === 2 && (
+                <div className="space-y-4">
+                  <p className="text-xl font-bold text-gray-700 mb-6">¡Perfecto para refrescarte! Te filtraremos las opciones frías.</p>
+                  <button onClick={() => { setFiltroGuia('frio'); setMostrarGuia(false); }} className="w-full bg-blue-500 text-white font-bold text-2xl py-4 rounded-2xl hover:bg-blue-600 transition-colors shadow-lg">¡Ver menú frío! 🍦</button>
+                </div>
+              )}
+
+              {pasoGuia === 3 && (
+                <div className="space-y-4">
+                  <p className="text-xl font-bold text-gray-700 mb-6">Ideal para acompañar una buena charla. Te mostraremos opciones horneadas.</p>
+                  <button onClick={() => { setFiltroGuia('horneado'); setMostrarGuia(false); }} className="w-full bg-orange-500 text-white font-bold text-2xl py-4 rounded-2xl hover:bg-orange-600 transition-colors shadow-lg">¡Ver menú horneado! 🍰</button>
+                </div>
+              )}
+            </motion.div>
+          </div>
+        )}
       </div>
     );
   }
@@ -440,14 +477,24 @@ function App() {
         )}
       <div className="w-2/3 p-8 overflow-y-auto">
         <h2 className="text-5xl font-black text-blue-900 mb-10 drop-shadow-md">ELIGE TU POSTRE 🍰</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {productos.map(producto => (
-            <motion.div key={producto.id} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => agregarAlCarrito(producto)} className="bg-white rounded-3xl p-6 flex flex-col items-center justify-between border-4 border-gray-200 shadow-[0_8px_0_0_rgba(209,213,219,1)] cursor-pointer select-none">
-              <div className="text-7xl mb-4">{producto.nombre.includes('Frappé') || producto.nombre.includes('Malteada') ? '🥤' : '🎂'}</div>
-              <h3 className="text-2xl font-bold text-center text-gray-800 mb-4">{producto.nombre}</h3>
-              <div className="bg-green-500 text-white text-2xl font-black py-2 px-6 rounded-xl shadow-[0_4px_0_0_rgba(21,128,61,1)]">${producto.precio.toFixed(2)}</div>
-            </motion.div>
-          ))}
+        
+        {/* BOTÓN GUÍA */}
+        <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => { setMostrarGuia(true); setPasoGuia(1); setFiltroGuia(''); }} className="fixed bottom-6 right-6 bg-pink-500 text-white p-4 rounded-full shadow-2xl flex items-center justify-center border-4 border-white z-40">
+          <span className="text-3xl mr-2">🗺️</span>
+          <span className="font-bold text-xl">¿Qué pido?</span>
+        </motion.button>
+
+        {/* MENÚ PRINCIPAL */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-32 relative z-10">
+          <AnimatePresence>
+            {productos.filter(p => p.nombre.toLowerCase().includes(filtroGuia.toLowerCase()) || (filtroGuia === 'frio' && (p.nombre.toLowerCase().includes('helado') || p.nombre.toLowerCase().includes('frap') || p.nombre.toLowerCase().includes('malteada'))) || (filtroGuia === 'horneado' && (p.nombre.toLowerCase().includes('pastel') || p.nombre.toLowerCase().includes('crepa') || p.nombre.toLowerCase().includes('pan') || p.nombre.toLowerCase().includes('caf')))).map((producto) => (
+              <motion.div key={producto.id} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => agregarAlCarrito(producto)} className="bg-white rounded-3xl p-6 flex flex-col items-center justify-between border-4 border-gray-200 shadow-[0_8px_0_0_rgba(209,213,219,1)] cursor-pointer select-none">
+                <div className="text-7xl mb-4">{producto.nombre.includes('Frappé') || producto.nombre.includes('Malteada') ? '🥤' : '🎂'}</div>
+                <h3 className="text-2xl font-bold text-center text-gray-800 mb-4">{producto.nombre}</h3>
+                <div className="bg-green-500 text-white text-2xl font-black py-2 px-6 rounded-xl shadow-[0_4px_0_0_rgba(21,128,61,1)]">${producto.precio.toFixed(2)}</div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
         </div>
       </div>
       <div className="w-1/3 bg-white border-l-8 border-gray-200 p-6 flex flex-col shadow-2xl relative z-10">
