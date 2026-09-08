@@ -18,7 +18,8 @@ CORS(app)
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 # Configuración de base de datos
-database_url = os.environ.get('DATABASE_URL', 'sqlite:///kiosco_postres.db')
+NEON_URL = "postgresql://neondb_owner:npg_yNkmWL02cSEu@ep-rapid-smoke-ax9b9xmt.c-4.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+database_url = os.environ.get('DATABASE_URL', NEON_URL)
 # SQLAlchemy requiere 'postgresql://' en lugar de 'postgres://' (que dan algunos proveedores)
 if database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql://", 1)
