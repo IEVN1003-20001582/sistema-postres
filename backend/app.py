@@ -308,6 +308,11 @@ def agregar_producto():
 # Esto crea las tablas automáticamente si no existen
 with app.app_context():
     db.create_all()
+    # Semilla (Seed) inicial: Si no hay negocio, crear uno para evitar errores de llave foránea
+    if not Negocio.query.first():
+        negocio_default = Negocio(nombre="Kiosco Arcade")
+        db.session.add(negocio_default)
+        db.session.commit()
 
 if __name__ == '__main__':
     
