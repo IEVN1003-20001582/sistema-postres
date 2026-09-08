@@ -1,9 +1,5 @@
-import os
-
 import eventlet
 eventlet.monkey_patch()
-import psycogreen.eventlet
-psycogreen.eventlet.patch_psycopg()
 
 from flask import Flask, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
@@ -12,7 +8,7 @@ from flask_cors import CORS
 from flask_socketio import SocketIO, emit #Nuevo: Importamos SocketIO para la comunicación en tiempo real
 from sqlalchemy import func
 
-
+import os
 
 app = Flask(__name__)
 CORS(app)
