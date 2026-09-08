@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Howl } from 'howler';
 import { io } from 'socket.io-client';
 
-const socket = io('http://localhost:5000');
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const socket = io(API_URL);
 
 // ==========================================
 // CONFIGURACIÓN DE SONIDOS
@@ -20,6 +21,7 @@ function App() {
   const [ordenesCocina, setOrdenesCocina] = useState([]);
   const [datosDashboard, setDatosDashboard] = useState({ ventas_totales: 0, total_ordenes: 0, inventario: [] });
   const [ticketActual, setTicketActual] = useState(null);
+  const [conectado, setConectado] = useState(true);
 
   // NUEVO: Estados para el panel de administración
   const [nuevoProducto, setNuevoProducto] = useState({ nombre: '', precio: '' });
@@ -34,7 +36,7 @@ function App() {
   };
 
   const cargarProductos = () => {
-    fetch('http://localhost:5000/api/productos')
+    fetch(`${API_URL}/api/productos')
       .then(res => res.json())
       .then(datos => setProductos(datos))
       .catch(err => console.error("Error al traer productos:", err));
@@ -57,7 +59,7 @@ function App() {
 
   const enviarOrden = async () => {
     try {
-      const respuesta = await fetch('http://localhost:5000/api/ordenes', {
+      const respuesta = await fetch(`${API_URL}/api/ordenes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ carrito: carrito, total: totalOrden })
@@ -82,7 +84,7 @@ function App() {
   // FUNCIONES DE COCINA
   // ==========================================
   const cargarOrdenesCocina = () => {
-    fetch('http://localhost:5000/api/ordenes/pendientes')
+    fetch(`${API_URL}/api/ordenes/pendientes')
       .then(res => res.json())
       .then(datos => setOrdenesCocina(datos))
       .catch(err => console.error("Error al cargar cocina:", err));
@@ -102,7 +104,7 @@ function App() {
   // FUNCIONES DEL DASHBOARD (ADMIN)
   // ==========================================
   const cargarDashboard = () => {
-    fetch('http://localhost:5000/api/dashboard')
+    fetch(`${API_URL}/api/dashboard')
       .then(res => res.json())
       .then(datos => { if(datos.status === 'success') setDatosDashboard(datos); })
       .catch(err => console.error("Error al cargar dashboard:", err));
@@ -113,7 +115,7 @@ function App() {
     if (!nuevoProducto.nombre || !nuevoProducto.precio) return alert("Llena ambos campos");
     
     try {
-      const respuesta = await fetch('http://localhost:5000/api/productos', {
+      const respuesta = await fetch(`${API_URL}/api/productos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(nuevoProducto)
@@ -159,12 +161,19 @@ function App() {
   useEffect(() => {
     if (pantalla === 'cocina') cargarOrdenesCocina();
 
+    socket.on('connect', () => setConectado(true));
+    socket.on('disconnect', () => setConectado(false));
+
     socket.on('nueva_orden_creada', (data) => {
       sonidoCampana.play();
       if (pantalla === 'cocina') cargarOrdenesCocina();
     });
 
-    return () => socket.off('nueva_orden_creada');
+    return () => {
+      socket.off('connect');
+      socket.off('disconnect');
+      socket.off('nueva_orden_creada');
+    };
   }, [pantalla]);
 
 
@@ -184,6 +193,11 @@ function App() {
           <button onClick={() => cambiarPantalla('cocina')} className="bg-gray-800 text-gray-400 font-bold py-2 px-6 rounded-full opacity-50 hover:opacity-100">👨‍🍳 Modo Cocina</button>
           <button onClick={() => { cambiarPantalla('dashboard'); cargarDashboard(); }} className="bg-blue-900 text-blue-300 font-bold py-2 px-6 rounded-full opacity-50 hover:opacity-100">📊 Panel Dueño</button>
         </div>
+        {!conectado && (
+          <div className="absolute top-4 bg-red-600 text-white font-bold py-2 px-6 rounded-full animate-pulse shadow-lg text-xl z-50">
+            🔴 Sin conexión con el servidor
+          </div>
+        )}
       </div>
     );
   }
@@ -331,7 +345,12 @@ function App() {
 
   // default: MENU Y CARRITO
   return (
-    <div className="h-screen w-full flex bg-blue-50 overflow-hidden">
+    <div className="h-screen w-full flex bg-blue-50 overflow-hidden relative">
+        {!conectado && (
+          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-red-600 text-white font-bold py-2 px-6 rounded-full animate-pulse shadow-lg text-xl z-50">
+            🔴 Sin conexión con el servidor
+          </div>
+        )}
       <div className="w-2/3 p-8 overflow-y-auto">
         <h2 className="text-5xl font-black text-blue-900 mb-10 drop-shadow-md">ELIGE TU POSTRE 🍰</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
