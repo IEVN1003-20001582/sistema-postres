@@ -17,6 +17,8 @@ CORS(app)
 # NUEVO: Inicializamos SocketIO conectado a nuestra app de Flask
 socketio = SocketIO(app, cors_allowed_origins="*")
 
+import ssl
+
 # Configuración de base de datos
 NEON_URL = "postgresql://neondb_owner:npg_yNkmWL02cSEu@ep-rapid-smoke-ax9b9xmt.c-4.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
 database_url = os.environ.get('DATABASE_URL', NEON_URL)
@@ -24,10 +26,19 @@ database_url = os.environ.get('DATABASE_URL', NEON_URL)
 if database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql://", 1)
 
+if database_url.startswith("postgresql://"):
+    database_url = database_url.replace("postgresql://", "postgresql+pg8000://", 1)
+    if "?" in database_url:
+        database_url = database_url.split("?")[0]
+    
+    ssl_context = ssl.create_default_context()
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {'poolclass': NullPool, 'connect_args': {'ssl_context': ssl_context}}
+else:
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {'poolclass': NullPool}
+
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 # Solución definitiva para el error de "lock" con eventlet y psycopg2
-app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {'poolclass': NullPool}
 
 db = SQLAlchemy(app)
 

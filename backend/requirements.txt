@@ -4,4 +4,4 @@ Flask-Cors
 Flask-SocketIO
 gunicorn==21.2.0
 eventlet
-psycopg2-binary==2.9.9
+pg8000
