@@ -209,10 +209,20 @@ def completar_orden(orden_id):
         orden = Orden.query.get(orden_id)
         if orden:
             orden.estado = 'LISTO'
+            
+            # --- NUEVO: Lógica de deducción de inventario ---
+            for detalle in orden.detalles:
+                recetas = Receta.query.filter_by(producto_id=detalle.producto_id).all()
+                for receta in recetas:
+                    insumo = Insumo.query.get(receta.insumo_id)
+                    if insumo:
+                        insumo.stock_actual -= (receta.cantidad_necesaria * detalle.cantidad)
+            # ------------------------------------------------
+            
             db.session.commit()
             # NUEVO: ¡Avisamos a todos los conectados (la cocina) que una orden ha sido completada!
             socketio.emit('orden_completada', {"id": orden.id})
-            return jsonify({"status": "success", "mensaje": "Orden completada"})
+            return jsonify({"status": "success", "mensaje": "Orden completada y almacén actualizado"})
         return jsonify({"status": "error", "mensaje": "Orden no encontrada"}), 404
     except Exception as e:
         return jsonify({"status": "error", "mensaje": str(e)}), 500
@@ -252,8 +262,67 @@ def obtener_dashboard():
         return jsonify({"status": "error", "mensaje": str(e)}), 500
 
 # ==========================================
-# RUTAS DE ADMINISTRACIÓN (CATÁLOGO)
+# RUTAS DE ADMINISTRACIÓN (CATÁLOGO Y ALMACÉN)
 # ==========================================
+
+@app.route('/api/insumos', methods=['GET'])
+def obtener_insumos():
+    try:
+        insumos = Insumo.query.all()
+        return jsonify([{"id": i.id, "nombre": i.nombre, "unidad_medida": i.unidad_medida, "stock_actual": i.stock_actual} for i in insumos])
+    except Exception as e:
+        return jsonify({"status": "error", "mensaje": str(e)}), 500
+
+@app.route('/api/insumos', methods=['POST'])
+def agregar_insumo():
+    try:
+        datos = request.get_json()
+        nuevo_insumo = Insumo(
+            negocio_id=1,
+            nombre=datos['nombre'],
+            unidad_medida=datos['unidad_medida'],
+            stock_actual=float(datos.get('stock_inicial', 0))
+        )
+        db.session.add(nuevo_insumo)
+        db.session.commit()
+        return jsonify({"status": "success", "mensaje": "Insumo creado", "id": nuevo_insumo.id})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"status": "error", "mensaje": str(e)}), 500
+
+@app.route('/api/recetas', methods=['POST'])
+def agregar_receta():
+    try:
+        datos = request.get_json()
+        nueva_receta = Receta(
+            producto_id=int(datos['producto_id']),
+            insumo_id=int(datos['insumo_id']),
+            cantidad_necesaria=float(datos['cantidad'])
+        )
+        db.session.add(nueva_receta)
+        db.session.commit()
+        return jsonify({"status": "success", "mensaje": "Receta enlazada correctamente"})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"status": "error", "mensaje": str(e)}), 500
+
+@app.route('/api/productos/<int:producto_id>/receta', methods=['GET'])
+def obtener_receta_producto(producto_id):
+    try:
+        recetas = Receta.query.filter_by(producto_id=producto_id).all()
+        lista = []
+        for r in recetas:
+            insumo = Insumo.query.get(r.insumo_id)
+            lista.append({
+                "id": r.id,
+                "insumo": insumo.nombre if insumo else "Desconocido",
+                "cantidad": r.cantidad_necesaria,
+                "unidad": insumo.unidad_medida if insumo else ""
+            })
+        return jsonify(lista)
+    except Exception as e:
+        return jsonify({"status": "error", "mensaje": str(e)}), 500
+
 
 @app.route('/api/inventario/<int:id>/reabastecer', methods=['PUT'])
 def reabastecer_inventario(id):

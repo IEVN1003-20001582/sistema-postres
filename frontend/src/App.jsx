@@ -27,6 +27,8 @@ function App() {
   // NUEVO: Estados para el panel de administración
   const [nuevoProducto, setNuevoProducto] = useState({ nombre: '', precio: '' });
   const [cantidadReabastecer, setCantidadReabastecer] = useState({});
+  const [nuevoInsumo, setNuevoInsumo] = useState({ nombre: '', unidad_medida: '', stock_inicial: '' });
+  const [recetaForm, setRecetaForm] = useState({ producto_id: '', insumo_id: '', cantidad: '' });
 
   // ==========================================
   // FUNCIONES GENERALES
@@ -138,6 +140,41 @@ function App() {
     } catch (error) {
       console.error("Error al crear producto:", error);
     }
+  };
+
+  const manejarCrearInsumo = async (e) => {
+    e.preventDefault();
+    if (!nuevoInsumo.nombre || !nuevoInsumo.unidad_medida) return alert("Llena nombre y unidad");
+    try {
+      const respuesta = await fetch(`${API_URL}/api/insumos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(nuevoInsumo)
+      });
+      const datos = await respuesta.json();
+      if (datos.status === 'success') {
+        alert("¡Ingrediente agregado al almacén!");
+        setNuevoInsumo({ nombre: '', unidad_medida: '', stock_inicial: '' });
+        cargarDashboard(); // Refrescamos el almacén
+      }
+    } catch (error) { console.error("Error al crear insumo:", error); }
+  };
+
+  const manejarCrearReceta = async (e) => {
+    e.preventDefault();
+    if (!recetaForm.producto_id || !recetaForm.insumo_id || !recetaForm.cantidad) return alert("Selecciona producto, insumo y cantidad");
+    try {
+      const respuesta = await fetch(`${API_URL}/api/recetas`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(recetaForm)
+      });
+      const datos = await respuesta.json();
+      if (datos.status === 'success') {
+        alert("¡Receta guardada! Ahora se descontará automáticamente.");
+        setRecetaForm({ ...recetaForm, cantidad: '' });
+      } else { alert("Error: " + datos.mensaje); }
+    } catch (error) { console.error("Error al crear receta:", error); }
   };
 
   const manejarReabastecer = async (id_insumo) => {
@@ -314,6 +351,36 @@ function App() {
               </tbody>
             </table>
           </div>
+
+          <div className="flex gap-4 mt-6">
+            {/* FORMULARIO CREAR INSUMO */}
+            <div className="bg-slate-800 rounded-2xl p-6 border border-slate-700 shadow-xl flex-1">
+              <h3 className="text-xl font-bold text-white mb-4">🧅 Nuevo Ingrediente</h3>
+              <form onSubmit={manejarCrearInsumo} className="flex flex-col gap-4">
+                <input type="text" placeholder="Nombre (ej. Leche)" value={nuevoInsumo.nombre} onChange={(e) => setNuevoInsumo({...nuevoInsumo, nombre: e.target.value})} className="bg-slate-700 text-white p-3 rounded-xl outline-none" />
+                <input type="text" placeholder="Unidad (ej. ml, gramos)" value={nuevoInsumo.unidad_medida} onChange={(e) => setNuevoInsumo({...nuevoInsumo, unidad_medida: e.target.value})} className="bg-slate-700 text-white p-3 rounded-xl outline-none" />
+                <button type="submit" className="bg-blue-600 text-white font-bold py-3 rounded-xl shadow-[0_4px_0_0_rgba(29,78,216,1)] active:translate-y-1">Agregar</button>
+              </form>
+            </div>
+
+            {/* FORMULARIO VINCULAR RECETA */}
+            <div className="bg-slate-800 rounded-2xl p-6 border border-slate-700 shadow-xl flex-1">
+              <h3 className="text-xl font-bold text-white mb-4">🔗 Vincular Receta</h3>
+              <form onSubmit={manejarCrearReceta} className="flex flex-col gap-4">
+                <select value={recetaForm.producto_id} onChange={(e) => setRecetaForm({...recetaForm, producto_id: e.target.value})} className="bg-slate-700 text-white p-3 rounded-xl outline-none">
+                  <option value="">-- Elige un Producto --</option>
+                  {productos.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+                </select>
+                <select value={recetaForm.insumo_id} onChange={(e) => setRecetaForm({...recetaForm, insumo_id: e.target.value})} className="bg-slate-700 text-white p-3 rounded-xl outline-none">
+                  <option value="">-- Elige un Ingrediente --</option>
+                  {datosDashboard.inventario.map(i => <option key={i.id} value={i.id}>{i.nombre} ({i.unidad})</option>)}
+                </select>
+                <input type="number" step="0.1" placeholder="Cantidad a descontar por orden" value={recetaForm.cantidad} onChange={(e) => setRecetaForm({...recetaForm, cantidad: e.target.value})} className="bg-slate-700 text-white p-3 rounded-xl outline-none" />
+                <button type="submit" className="bg-orange-600 text-white font-bold py-3 rounded-xl shadow-[0_4px_0_0_rgba(194,65,12,1)] active:translate-y-1">Guardar Receta</button>
+              </form>
+            </div>
+          </div>
+
         </div>
 
       </div>
