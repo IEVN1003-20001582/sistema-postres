@@ -12,10 +12,10 @@ app = Flask(__name__)
 CORS(app)
 
 # NUEVO: Inicializamos SocketIO conectado a nuestra app de Flask
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 # Configuración de MySQL
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+mysqlconnector://root:@localhost/kiosco_postres'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///kiosco_postres.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -305,4 +305,4 @@ if __name__ == '__main__':
     with app.app_context():
         db.create_all()
     
-    socketio.run(app, debug=True, port=5000)
+    socketio.run(app, debug=True, port=5000, allow_unsafe_werkzeug=True)

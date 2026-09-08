@@ -8,10 +8,10 @@ const socket = io('http://localhost:5000');
 // ==========================================
 // CONFIGURACIÓN DE SONIDOS
 // ==========================================
-const sonidoBoton = new Howl({ src: ['https://actions.google.com/sounds/v1/cartoon/wood_plank_flick.ogg'], volume: 0.5 });
-const sonidoMoneda = new Howl({ src: ['https://actions.google.com/sounds/v1/cartoon/cartoon_boing.ogg'], volume: 0.4 });
-const sonidoExito = new Howl({ src: ['https://actions.google.com/sounds/v1/cartoon/trumpet_success.ogg'], volume: 0.5 });
-const sonidoCampana = new Howl({ src: ['https://actions.google.com/sounds/v1/alarms/dinner_bell_triangle.ogg'], volume: 0.6 });
+const sonidoBoton = new Howl({ src: ['/sounds/click.wav'], volume: 0.5 });
+const sonidoMoneda = new Howl({ src: ['/sounds/notify.wav'], volume: 0.4 });
+const sonidoExito = new Howl({ src: ['/sounds/success.wav'], volume: 0.5 });
+const sonidoCampana = new Howl({ src: ['/sounds/notify.wav'], volume: 0.6 });
 
 function App() {
   const [pantalla, setPantalla] = useState('inicio'); 
