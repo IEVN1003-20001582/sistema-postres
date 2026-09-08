@@ -20,6 +20,10 @@ database_url = os.environ.get('DATABASE_URL', 'sqlite:///kiosco_postres.db')
 if database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql://", 1)
 
+# Para usar eventlet (WebSockets) de manera segura con Postgres, necesitamos pg8000
+if database_url.startswith("postgresql://"):
+    database_url = database_url.replace("postgresql://", "postgresql+pg8000://", 1)
+
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 

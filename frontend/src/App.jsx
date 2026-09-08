@@ -38,7 +38,10 @@ function App() {
   const cargarProductos = () => {
     fetch(`${API_URL}/api/productos`)
       .then(res => res.json())
-      .then(datos => setProductos(datos))
+      .then(datos => {
+        if (Array.isArray(datos)) setProductos(datos);
+        else console.error("Error en formato de productos:", datos);
+      })
       .catch(err => console.error("Error al traer productos:", err));
   };
 
@@ -86,7 +89,10 @@ function App() {
   const cargarOrdenesCocina = () => {
     fetch(`${API_URL}/api/ordenes/pendientes`)
       .then(res => res.json())
-      .then(datos => setOrdenesCocina(datos))
+      .then(datos => {
+        if (Array.isArray(datos)) setOrdenesCocina(datos);
+        else console.error("Error en formato de cocina:", datos);
+      })
       .catch(err => console.error("Error al cargar cocina:", err));
   };
 
