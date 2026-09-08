@@ -14,8 +14,13 @@ CORS(app)
 # NUEVO: Inicializamos SocketIO conectado a nuestra app de Flask
 socketio = SocketIO(app, cors_allowed_origins="*")
 
-# Configuración de MySQL
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///kiosco_postres.db'
+# Configuración de base de datos
+database_url = os.environ.get('DATABASE_URL', 'sqlite:///kiosco_postres.db')
+# SQLAlchemy requiere 'postgresql://' en lugar de 'postgres://' (que dan algunos proveedores)
+if database_url.startswith("postgres://"):
+    database_url = database_url.replace("postgres://", "postgresql://", 1)
+
+app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
