@@ -36,7 +36,7 @@ function App() {
   };
 
   const cargarProductos = () => {
-    fetch(`${API_URL}/api/productos')
+    fetch(`${API_URL}/api/productos`)
       .then(res => res.json())
       .then(datos => setProductos(datos))
       .catch(err => console.error("Error al traer productos:", err));
@@ -59,7 +59,7 @@ function App() {
 
   const enviarOrden = async () => {
     try {
-      const respuesta = await fetch(`${API_URL}/api/ordenes', {
+      const respuesta = await fetch(`${API_URL}/api/ordenes`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ carrito: carrito, total: totalOrden })
@@ -84,7 +84,7 @@ function App() {
   // FUNCIONES DE COCINA
   // ==========================================
   const cargarOrdenesCocina = () => {
-    fetch(`${API_URL}/api/ordenes/pendientes')
+    fetch(`${API_URL}/api/ordenes/pendientes`)
       .then(res => res.json())
       .then(datos => setOrdenesCocina(datos))
       .catch(err => console.error("Error al cargar cocina:", err));
@@ -93,7 +93,7 @@ function App() {
   const completarOrden = async (id) => {
     try {
       sonidoCampana.play();
-      await fetch(`http://localhost:5000/api/ordenes/${id}/completar`, { method: 'PUT' });
+      await fetch(`${API_URL}/api/ordenes/${id}/completar`, { method: 'PUT' });
       cargarOrdenesCocina(); 
     } catch (error) {
       console.error("Error al completar:", error);
@@ -104,7 +104,7 @@ function App() {
   // FUNCIONES DEL DASHBOARD (ADMIN)
   // ==========================================
   const cargarDashboard = () => {
-    fetch(`${API_URL}/api/dashboard')
+    fetch(`${API_URL}/api/dashboard`)
       .then(res => res.json())
       .then(datos => { if(datos.status === 'success') setDatosDashboard(datos); })
       .catch(err => console.error("Error al cargar dashboard:", err));
@@ -115,7 +115,7 @@ function App() {
     if (!nuevoProducto.nombre || !nuevoProducto.precio) return alert("Llena ambos campos");
     
     try {
-      const respuesta = await fetch(`${API_URL}/api/productos', {
+      const respuesta = await fetch(`${API_URL}/api/productos`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(nuevoProducto)
@@ -136,7 +136,7 @@ function App() {
     if (!cantidad || cantidad <= 0) return alert("Ingresa una cantidad válida");
 
     try {
-      const respuesta = await fetch(`http://localhost:5000/api/inventario/${id_insumo}/reabastecer`, {
+      const respuesta = await fetch(`${API_URL}/api/inventario/${id_insumo}/reabastecer`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ cantidad: cantidad })
