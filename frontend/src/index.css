@@ -1,6 +1,12 @@
 @import "tailwindcss";
-
 @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700;900&display=swap');
+
+@theme {
+  --color-candy-darkpink: #F29191;
+  --color-candy-lightpink: #F7ADAD;
+  --color-candy-teal: #B1E5E6;
+  --color-candy-mint: #CCFBFA;
+}
 
 body {
   font-family: 'Fredoka', sans-serif;

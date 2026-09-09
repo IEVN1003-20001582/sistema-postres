@@ -15,14 +15,20 @@ const sonidoExito = new Howl({ src: ['/sounds/success.wav'], volume: 0.5 });
 const sonidoCampana = new Howl({ src: ['/sounds/notify.wav'], volume: 0.6 });
 
 function App() {
-  const [pantalla, setPantalla] = useState('inicio'); 
+  const [pantalla, setPantalla] = useState(localStorage.getItem('token') ? 'inicio' : 'login'); 
+  const [token, setToken] = useState(localStorage.getItem('token') || null);
+  const [negocioNombre, setNegocioNombre] = useState(localStorage.getItem('negocio_nombre') || '');
+  
   const [productos, setProductos] = useState([]);
   const [carrito, setCarrito] = useState([]); 
   const [ordenesCocina, setOrdenesCocina] = useState([]);
   const [datosDashboard, setDatosDashboard] = useState({ ventas_totales: 0, total_ordenes: 0, inventario: [] });
   const [ticketActual, setTicketActual] = useState(null);
-  const [nombreCliente, setNombreCliente] = useState(''); // NUEVO: Para guardar el nombre
+  const [nombreCliente, setNombreCliente] = useState('');
   const [conectado, setConectado] = useState(true);
+
+  // NUEVO: Estado para Auth Login
+  const [loginForm, setLoginForm] = useState({ username: '', password: '', nombre_negocio: '', esRegistro: false });
 
   // NUEVO: Estados para el panel de administración
   const [nuevoProducto, setNuevoProducto] = useState({ nombre: '', precio: '' });
@@ -35,6 +41,29 @@ function App() {
   const [filtroGuia, setFiltroGuia] = useState('');
 
   // ==========================================
+  // API WRAPPER (AUTENTICACIÓN)
+  // ==========================================
+  const apiFetch = async (url, options = {}) => {
+    const defaultHeaders = { 'Content-Type': 'application/json' };
+    if (token) defaultHeaders['Authorization'] = `Bearer ${token}`;
+    
+    const respuesta = await fetch(url, { ...options, headers: { ...defaultHeaders, ...options.headers } });
+    if (respuesta.status === 401 || respuesta.status === 403) {
+      cerrarSesion();
+      throw new Error("Sesión expirada o no autorizada");
+    }
+    return respuesta;
+  };
+
+  const cerrarSesion = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('negocio_nombre');
+    setToken(null);
+    setNegocioNombre('');
+    setPantalla('login');
+  };
+
+  // ==========================================
   // FUNCIONES GENERALES
   // ==========================================
   const cambiarPantalla = (nuevaPantalla) => {
@@ -43,7 +72,8 @@ function App() {
   };
 
   const cargarProductos = () => {
-    fetch(`${API_URL}/api/productos`)
+    if (!token) return;
+    apiFetch(`${API_URL}/api/productos`)
       .then(res => res.json())
       .then(datos => {
         if (Array.isArray(datos)) setProductos(datos);
@@ -70,9 +100,8 @@ function App() {
   const enviarOrden = async () => {
     if (!nombreCliente.trim()) return alert("Por favor ingresa tu nombre para llamarte cuando esté listo.");
     try {
-      const respuesta = await fetch(`${API_URL}/api/ordenes`, {
+      const respuesta = await apiFetch(`${API_URL}/api/ordenes`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ carrito: carrito, total: totalOrden, nombre_cliente: nombreCliente })
       });
       const datos = await respuesta.json();
@@ -96,7 +125,8 @@ function App() {
   // FUNCIONES DE COCINA
   // ==========================================
   const cargarOrdenesCocina = () => {
-    fetch(`${API_URL}/api/ordenes/pendientes`)
+    if (!token) return;
+    apiFetch(`${API_URL}/api/ordenes/pendientes`)
       .then(res => res.json())
       .then(datos => {
         if (Array.isArray(datos)) setOrdenesCocina(datos);
@@ -108,7 +138,7 @@ function App() {
   const completarOrden = async (id) => {
     try {
       sonidoCampana.play();
-      await fetch(`${API_URL}/api/ordenes/${id}/completar`, { method: 'PUT' });
+      await apiFetch(`${API_URL}/api/ordenes/${id}/completar`, { method: 'PUT' });
       cargarOrdenesCocina(); 
     } catch (error) {
       console.error("Error al completar:", error);
@@ -119,8 +149,9 @@ function App() {
   // FUNCIONES DEL DASHBOARD (ADMIN)
   // ==========================================  
   const cargarDashboard = async (filtro = filtroVentas) => {
+    if (!token) return;
     try {
-      const respuesta = await fetch(`${API_URL}/api/dashboard?filtro=${filtro}`);
+      const respuesta = await apiFetch(`${API_URL}/api/dashboard?filtro=${filtro}`);
       const datos = await respuesta.json();
       if(datos.status === 'success') setDatosDashboard(datos);
     } catch (err) { console.error("Error al cargar dashboard:", err); }
@@ -131,9 +162,8 @@ function App() {
     if (!nuevoProducto.nombre || !nuevoProducto.precio) return alert("Llena ambos campos");
     
     try {
-      const respuesta = await fetch(`${API_URL}/api/productos`, {
+      const respuesta = await apiFetch(`${API_URL}/api/productos`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(nuevoProducto)
       });
       const datos = await respuesta.json();
@@ -151,9 +181,8 @@ function App() {
     e.preventDefault();
     if (!nuevoInsumo.nombre || !nuevoInsumo.unidad_medida) return alert("Llena nombre y unidad");
     try {
-      const respuesta = await fetch(`${API_URL}/api/insumos`, {
+      const respuesta = await apiFetch(`${API_URL}/api/insumos`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(nuevoInsumo)
       });
       const datos = await respuesta.json();
@@ -169,9 +198,8 @@ function App() {
     e.preventDefault();
     if (!recetaForm.producto_id || !recetaForm.insumo_id || !recetaForm.cantidad) return alert("Selecciona producto, insumo y cantidad");
     try {
-      const respuesta = await fetch(`${API_URL}/api/recetas`, {
+      const respuesta = await apiFetch(`${API_URL}/api/recetas`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(recetaForm)
       });
       const datos = await respuesta.json();
@@ -187,9 +215,8 @@ function App() {
     if (!cantidad || cantidad <= 0) return alert("Ingresa una cantidad válida");
 
     try {
-      const respuesta = await fetch(`${API_URL}/api/inventario/${id_insumo}/reabastecer`, {
+      const respuesta = await apiFetch(`${API_URL}/api/inventario/${id_insumo}/reabastecer`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ cantidad: cantidad })
       });
       const datos = await respuesta.json();
@@ -206,9 +233,11 @@ function App() {
   // EFECTOS
   // ==========================================
   useEffect(() => {
-    cargarProductos();
-    cargarDashboard(filtroVentas);
-  }, []);
+    if (token) {
+      cargarProductos();
+      cargarDashboard(filtroVentas);
+    }
+  }, [token]);
 
   useEffect(() => {
     if (pantalla === 'cocina') cargarOrdenesCocina();
@@ -232,10 +261,73 @@ function App() {
   // ==========================================
   // RENDER DE PANTALLAS
   // ==========================================
+  if (pantalla === 'login') {
+    const manejarLogin = async (e) => {
+      e.preventDefault();
+      const endpoint = loginForm.esRegistro ? '/api/auth/registro' : '/api/auth/login';
+      try {
+        const res = await fetch(`${API_URL}${endpoint}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(loginForm)
+        });
+        const datos = await res.json();
+        if (datos.status === 'success') {
+          localStorage.setItem('token', datos.token);
+          localStorage.setItem('negocio_nombre', datos.negocio_nombre);
+          setToken(datos.token);
+          setNegocioNombre(datos.negocio_nombre);
+          cambiarPantalla('inicio');
+        } else {
+          alert(datos.error || "Error de autenticación");
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    return (
+      <div className="h-screen w-full flex flex-col items-center justify-center p-4 bg-candy-mint">
+        <motion.div initial={{ y: -50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="brutal-card p-10 bg-white max-w-md w-full">
+          <h1 className="text-4xl font-black text-candy-darkpink mb-6 text-center">
+            {loginForm.esRegistro ? 'NUEVO NEGOCIO' : 'INICIAR SESIÓN'}
+          </h1>
+          <form onSubmit={manejarLogin} className="flex flex-col gap-4">
+            {loginForm.esRegistro && (
+              <input type="text" placeholder="Nombre del Negocio" required
+                className="brutal-input text-xl"
+                value={loginForm.nombre_negocio} onChange={e => setLoginForm({...loginForm, nombre_negocio: e.target.value})}
+              />
+            )}
+            <input type="text" placeholder="Usuario" required
+              className="brutal-input text-xl"
+              value={loginForm.username} onChange={e => setLoginForm({...loginForm, username: e.target.value})}
+            />
+            <input type="password" placeholder="Contraseña" required
+              className="brutal-input text-xl"
+              value={loginForm.password} onChange={e => setLoginForm({...loginForm, password: e.target.value})}
+            />
+            <button type="submit" className="brutal-btn bg-candy-darkpink text-white text-2xl py-3 mt-4">
+              {loginForm.esRegistro ? 'Registrarme' : 'Entrar'}
+            </button>
+          </form>
+          <button onClick={() => setLoginForm({...loginForm, esRegistro: !loginForm.esRegistro})} className="mt-6 text-candy-darkpink font-bold underline text-center w-full block">
+            {loginForm.esRegistro ? '¿Ya tienes cuenta? Inicia sesión' : '¿No tienes cuenta? Regístrate'}
+          </button>
+        </motion.div>
+      </div>
+    );
+  }
+
   if (pantalla === 'inicio') {
     return (
-      <div className="h-screen w-full flex flex-col items-center justify-center p-4 relative overflow-hidden">
-        <motion.div initial={{ y: -50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="brutal-card p-10 bg-yellow-300 text-center relative max-w-3xl z-10">
+      <div className="h-screen w-full flex flex-col items-center justify-center p-4 relative overflow-hidden bg-candy-mint">
+        <div className="absolute top-4 right-4 flex gap-4">
+          <div className="brutal-card bg-white px-4 py-2 font-bold text-candy-darkpink">🏪 {negocioNombre}</div>
+          <button onClick={cerrarSesion} className="brutal-btn bg-red-500 text-white px-4 py-2">Salir</button>
+        </div>
+        
+        <motion.div initial={{ y: -50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="brutal-card p-10 bg-candy-lightpink text-center relative max-w-3xl z-10">
           <div className="absolute -top-10 -left-10 text-8xl rotate-12">🍰</div>
           <div className="absolute -bottom-10 -right-10 text-8xl -rotate-12">🍦</div>
           <h1 className="text-7xl font-black text-pink-600 mb-6 drop-shadow-[4px_4px_0_0_#fff]">KIOSCO DE POSTRES</h1>
@@ -243,15 +335,15 @@ function App() {
         </motion.div>
         
         <div className="flex space-x-8 mt-12 z-10">
-          <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => cambiarPantalla('menu')} className="brutal-btn bg-pink-500 text-white text-4xl py-6 px-12 rounded-2xl flex items-center">
+          <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => cambiarPantalla('menu')} className="brutal-btn bg-candy-darkpink text-white text-4xl py-6 px-12 rounded-2xl flex items-center">
             <span className="text-5xl mr-4">🛍️</span> ¡HACER PEDIDO!
           </motion.button>
-          <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => { cargarOrdenesCocina(); cambiarPantalla('cocina'); }} className="brutal-btn bg-blue-500 text-white text-4xl py-6 px-12 rounded-2xl flex items-center">
+          <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => { cargarOrdenesCocina(); cambiarPantalla('cocina'); }} className="brutal-btn bg-candy-teal text-white text-4xl py-6 px-12 rounded-2xl flex items-center">
             <span className="text-5xl mr-4">🧑‍🍳</span> MODO COCINA
           </motion.button>
         </div>
 
-        <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => { cargarDashboard(); cambiarPantalla('admin'); }} className="brutal-btn bg-purple-500 text-white text-2xl py-4 px-8 rounded-2xl mt-12 z-10">
+        <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => { cargarDashboard(); cambiarPantalla('dashboard'); }} className="brutal-btn bg-white text-candy-darkpink text-2xl py-4 px-8 rounded-2xl mt-12 z-10">
           👑 PANEL DE DUEÑO
         </motion.button>
 
@@ -434,40 +526,6 @@ function App() {
             </AnimatePresence>
           )}
         </div>
-
-        {/* MODAL GUÍA INTERACTIVA */}
-        {mostrarGuia && (
-          <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4">
-            <motion.div initial={{ scale: 0.8, opacity: 0, y: 50 }} animate={{ scale: 1, opacity: 1, y: 0 }} className="brutal-card bg-white p-8 max-w-lg w-full text-center relative">
-              <button onClick={() => { setMostrarGuia(false); setFiltroGuia(''); }} className="brutal-btn absolute -top-6 -right-6 bg-red-500 text-white w-12 h-12 rounded-full text-2xl">X</button>
-              
-              <div className="text-8xl mb-4 bg-pink-300 inline-block rounded-full p-4 border-4 border-black">🧙‍♂️</div>
-              <h2 className="text-4xl font-black text-black mb-6 uppercase">Tu Guía Dulce</h2>
-
-              {pasoGuia === 1 && (
-                <div className="space-y-6">
-                  <p className="text-2xl font-bold text-gray-700 bg-yellow-200 p-4 border-4 border-black">¿Qué se te antoja hoy?</p>
-                  <button onClick={() => setPasoGuia(2)} className="brutal-btn w-full bg-cyan-300 text-black text-3xl py-4 rounded-2xl">🧊 Algo Fresco</button>
-                  <button onClick={() => setPasoGuia(3)} className="brutal-btn w-full bg-orange-400 text-black text-3xl py-4 rounded-2xl">🔥 Algo Horneado</button>
-                </div>
-              )}
-
-              {pasoGuia === 2 && (
-                <div className="space-y-6">
-                  <p className="text-xl font-bold text-black bg-cyan-100 p-4 border-4 border-black">¡Filtraremos el menú con nuestras mejores bebidas y helados fríos!</p>
-                  <button onClick={() => { setFiltroGuia('frio'); setMostrarGuia(false); }} className="brutal-btn w-full bg-blue-500 text-white text-3xl py-4 rounded-2xl">¡VER MENÚ! 🍦</button>
-                </div>
-              )}
-
-              {pasoGuia === 3 && (
-                <div className="space-y-6">
-                  <p className="text-xl font-bold text-black bg-orange-100 p-4 border-4 border-black">¡Filtraremos el menú con nuestros mejores postres recién horneados!</p>
-                  <button onClick={() => { setFiltroGuia('horneado'); setMostrarGuia(false); }} className="brutal-btn w-full bg-red-500 text-white text-3xl py-4 rounded-2xl">¡VER MENÚ! 🍰</button>
-                </div>
-              )}
-            </motion.div>
-          </div>
-        )}
       </div>
     );
   }

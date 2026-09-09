@@ -9,7 +9,9 @@ from flask_socketio import SocketIO, emit
 from sqlalchemy import func
 
 import os
+import secrets
 from datetime import datetime, timedelta
+from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
 CORS(app)
@@ -53,6 +55,16 @@ class Negocio(db.Model):
     # Relaciones para acceder fácilmente a sus productos e insumos
     productos = db.relationship('Producto', backref='negocio', lazy=True)
     insumos = db.relationship('Insumo', backref='negocio', lazy=True)
+    usuarios = db.relationship('Usuario', backref='negocio', lazy=True)
+
+class Usuario(db.Model):
+    __tablename__ = 'usuarios'
+    id = db.Column(db.Integer, primary_key=True)
+    negocio_id = db.Column(db.Integer, db.ForeignKey('negocios.id'), nullable=False)
+    username = db.Column(db.String(50), unique=True, nullable=False)
+    password_hash = db.Column(db.String(255), nullable=False)
+    token = db.Column(db.String(100), unique=True, nullable=True) # Para sesiones simples
+    rol = db.Column(db.String(20), default="dueño") # dueño, cajero, cocina
 
 class Producto(db.Model):
     __tablename__ = 'productos'
@@ -108,11 +120,99 @@ def status():
     except Exception as e:
         return jsonify({"status": "error", "mensaje": f"Error: {str(e)}"})
 
-@app.route('/api/productos', methods=['GET'])
-def obtener_productos():
+# ==========================================
+# RUTAS DE AUTENTICACIÓN
+# ==========================================
+
+def requerir_autenticacion(f):
+    from functools import wraps
+    @wraps(f)
+    def decorador(*args, **kwargs):
+        token = request.headers.get('Authorization')
+        if not token:
+            return jsonify({"error": "Falta token de autorización"}), 401
+        
+        token = token.replace("Bearer ", "")
+        usuario = Usuario.query.filter_by(token=token).first()
+        
+        if not usuario:
+            return jsonify({"error": "Token inválido"}), 401
+            
+        return f(usuario, *args, **kwargs)
+    return decorador
+
+@app.route('/api/auth/registro', methods=['POST'])
+def registro():
+    datos = request.get_json()
+    nombre_negocio = datos.get('nombre_negocio')
+    username = datos.get('username')
+    password = datos.get('password')
+    
+    if not nombre_negocio or not username or not password:
+        return jsonify({"error": "Faltan datos requeridos"}), 400
+        
+    if Usuario.query.filter_by(username=username).first():
+        return jsonify({"error": "El usuario ya existe"}), 400
+        
     try:
-        # Buscamos todos los productos que estén marcados como disponibles
-        productos_db = Producto.query.filter_by(disponible=True).all()
+        # 1. Crear negocio
+        nuevo_negocio = Negocio(nombre=nombre_negocio)
+        db.session.add(nuevo_negocio)
+        db.session.flush() # Para obtener ID
+        
+        # 2. Crear usuario dueño
+        nuevo_usuario = Usuario(
+            negocio_id=nuevo_negocio.id,
+            username=username,
+            password_hash=generate_password_hash(password),
+            token=secrets.token_hex(32)
+        )
+        db.session.add(nuevo_usuario)
+        db.session.commit()
+        
+        return jsonify({
+            "status": "success", 
+            "mensaje": "Negocio registrado exitosamente",
+            "token": nuevo_usuario.token,
+            "negocio_id": nuevo_negocio.id,
+            "negocio_nombre": nuevo_negocio.nombre
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/auth/login', methods=['POST'])
+def login():
+    datos = request.get_json()
+    username = datos.get('username')
+    password = datos.get('password')
+    
+    usuario = Usuario.query.filter_by(username=username).first()
+    
+    if not usuario or not check_password_hash(usuario.password_hash, password):
+        return jsonify({"error": "Credenciales inválidas"}), 401
+        
+    # Renovar token opcionalmente, pero podemos dejar el mismo por ahora
+    if not usuario.token:
+        usuario.token = secrets.token_hex(32)
+        db.session.commit()
+        
+    negocio = Negocio.query.get(usuario.negocio_id)
+        
+    return jsonify({
+        "status": "success",
+        "token": usuario.token,
+        "negocio_id": usuario.negocio_id,
+        "negocio_nombre": negocio.nombre,
+        "rol": usuario.rol
+    })
+
+@app.route('/api/productos', methods=['GET'])
+@requerir_autenticacion
+def obtener_productos(usuario_auth):
+    try:
+        # Buscamos todos los productos que estén marcados como disponibles en EL NEGOCIO ESPECÍFICO
+        productos_db = Producto.query.filter_by(negocio_id=usuario_auth.negocio_id, disponible=True).all()
         
         # Convertimos la información a un formato que React pueda entender (JSON)
         lista_productos = []
@@ -128,7 +228,8 @@ def obtener_productos():
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/ordenes', methods=['POST'])
-def crear_orden():
+@requerir_autenticacion
+def crear_orden(usuario_auth):
     try:
         datos = request.get_json()
         carrito = datos.get('carrito', [])
@@ -138,7 +239,7 @@ def crear_orden():
             return jsonify({"status": "error", "mensaje": "El carrito está vacío"}), 400
 
         # 1. Creamos el registro general de la Orden
-        nueva_orden = Orden(negocio_id=1, total=float(datos['total']), nombre_cliente=datos.get('nombre_cliente', 'Sin nombre'))
+        nueva_orden = Orden(negocio_id=usuario_auth.negocio_id, total=float(datos['total']), nombre_cliente=datos.get('nombre_cliente', 'Sin nombre'))
         db.session.add(nueva_orden)
         db.session.flush() # Guardamos temporalmente para obtener el ID
 
@@ -198,10 +299,11 @@ def crear_orden():
 # ==========================================
 
 @app.route('/api/ordenes/pendientes', methods=['GET'])
-def ordenes_pendientes():
+@requerir_autenticacion
+def ordenes_pendientes(usuario_auth):
     try:
         # Buscamos solo las órdenes que no se han entregado
-        ordenes = Orden.query.filter_by(estado='PENDIENTE').all()
+        ordenes = Orden.query.filter_by(negocio_id=usuario_auth.negocio_id, estado='PENDIENTE').all()
         lista_ordenes = []
         
         for o in ordenes:
@@ -218,10 +320,11 @@ def ordenes_pendientes():
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/ordenes/<int:orden_id>/completar', methods=['PUT'])
-def completar_orden(orden_id):
+@requerir_autenticacion
+def completar_orden(usuario_auth, orden_id):
     try:
         orden = Orden.query.get(orden_id)
-        if orden:
+        if orden and orden.negocio_id == usuario_auth.negocio_id:
             orden.estado = 'LISTO'
             
             # --- NUEVO: Lógica de deducción de inventario ---
@@ -246,11 +349,12 @@ def completar_orden(orden_id):
 # ==========================================
 
 @app.route('/api/dashboard', methods=['GET'])
-def obtener_dashboard():
+@requerir_autenticacion
+def obtener_dashboard(usuario_auth):
     try:
         filtro = request.args.get('filtro', 'hoy') # hoy, semana, mes, todo
         
-        query = db.session.query(Orden)
+        query = db.session.query(Orden).filter_by(negocio_id=usuario_auth.negocio_id)
         hoy = datetime.utcnow()
         
         if filtro == 'hoy':
@@ -267,7 +371,7 @@ def obtener_dashboard():
         total_ordenes = query.count()
         
         # 3. Traemos el inventario para ver qué se está acabando
-        insumos_db = Insumo.query.all()
+        insumos_db = Insumo.query.filter_by(negocio_id=usuario_auth.negocio_id).all()
         inventario = []
         for insumo in insumos_db:
             inventario.append({
@@ -291,19 +395,21 @@ def obtener_dashboard():
 # ==========================================
 
 @app.route('/api/insumos', methods=['GET'])
-def obtener_insumos():
+@requerir_autenticacion
+def obtener_insumos(usuario_auth):
     try:
-        insumos = Insumo.query.all()
+        insumos = Insumo.query.filter_by(negocio_id=usuario_auth.negocio_id).all()
         return jsonify([{"id": i.id, "nombre": i.nombre, "unidad_medida": i.unidad_medida, "stock_actual": i.stock_actual} for i in insumos])
     except Exception as e:
         return jsonify({"status": "error", "mensaje": str(e)}), 500
 
 @app.route('/api/insumos', methods=['POST'])
-def agregar_insumo():
+@requerir_autenticacion
+def agregar_insumo(usuario_auth):
     try:
         datos = request.get_json()
         nuevo_insumo = Insumo(
-            negocio_id=1,
+            negocio_id=usuario_auth.negocio_id,
             nombre=datos['nombre'],
             unidad_medida=datos['unidad_medida'],
             stock_actual=float(datos.get('stock_inicial', 0))
@@ -316,7 +422,8 @@ def agregar_insumo():
         return jsonify({"status": "error", "mensaje": str(e)}), 500
 
 @app.route('/api/recetas', methods=['POST'])
-def agregar_receta():
+@requerir_autenticacion
+def agregar_receta(usuario_auth):
     try:
         datos = request.get_json()
         nueva_receta = Receta(
@@ -332,8 +439,13 @@ def agregar_receta():
         return jsonify({"status": "error", "mensaje": str(e)}), 500
 
 @app.route('/api/productos/<int:producto_id>/receta', methods=['GET'])
-def obtener_receta_producto(producto_id):
+@requerir_autenticacion
+def obtener_receta_producto(usuario_auth, producto_id):
     try:
+        producto = Producto.query.get(producto_id)
+        if not producto or producto.negocio_id != usuario_auth.negocio_id:
+            return jsonify({"error": "No autorizado o no encontrado"}), 403
+            
         recetas = Receta.query.filter_by(producto_id=producto_id).all()
         lista = []
         for r in recetas:
@@ -350,12 +462,13 @@ def obtener_receta_producto(producto_id):
 
 
 @app.route('/api/inventario/<int:id>/reabastecer', methods=['PUT'])
-def reabastecer_inventario(id):
+@requerir_autenticacion
+def reabastecer_inventario(usuario_auth, id):
     try:
         datos = request.get_json()
         cantidad = float(datos.get('cantidad', 0))
         insumo = Insumo.query.get(id)
-        if insumo:
+        if insumo and insumo.negocio_id == usuario_auth.negocio_id:
             insumo.stock_actual += cantidad
             db.session.commit()
             return jsonify({"status": "success", "mensaje": f"Se agregaron {cantidad} a {insumo.nombre}"})
@@ -365,11 +478,12 @@ def reabastecer_inventario(id):
         return jsonify({"status": "error", "mensaje": str(e)}), 500
 
 @app.route('/api/productos', methods=['POST'])
-def agregar_producto():
+@requerir_autenticacion
+def agregar_producto(usuario_auth):
     try:
         datos = request.get_json()
         nuevo_producto = Producto(
-            negocio_id=1,
+            negocio_id=usuario_auth.negocio_id,
             nombre=datos['nombre'],
             precio=float(datos['precio']),
             disponible=True
@@ -400,11 +514,8 @@ def agregar_producto():
 # Esto crea las tablas automáticamente si no existen
 with app.app_context():
     db.create_all()
-    # Semilla (Seed) inicial: Si no hay negocio, crear uno para evitar errores de llave foránea
-    if not Negocio.query.first():
-        negocio_default = Negocio(nombre="Kiosco Arcade")
-        db.session.add(negocio_default)
-        db.session.commit()
+    # No pre-poblamos un negocio porque ahora los usuarios se registran.
+    pass
 
 if __name__ == '__main__':
     

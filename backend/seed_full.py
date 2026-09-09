@@ -3,14 +3,7 @@ from app import app, db, Negocio, Producto, Insumo, Receta
 
 def seed_db():
     with app.app_context():
-        # Obtener el negocio (debe existir)
-        negocio = Negocio.query.first()
-        if not negocio:
-            negocio = Negocio(nombre="Kiosco de Postres Mágicos")
-            db.session.add(negocio)
-            db.session.commit()
-            
-        from app import Orden, OrdenDetalle
+        from app import Orden, OrdenDetalle, Usuario
         
         print("Borrando historial de ordenes, recetas, productos e insumos existentes...")
         OrdenDetalle.query.delete()
@@ -18,9 +11,30 @@ def seed_db():
         Receta.query.delete()
         Producto.query.delete()
         Insumo.query.delete()
+        Usuario.query.delete()
+        Negocio.query.delete()
         db.session.commit()
 
-        print("Creando insumos...")
+        print("Creando insumos y Negocio...")
+        # 0. Crear Negocio y Usuario
+        negocio = Negocio(nombre="Kiosco Arcade")
+        db.session.add(negocio)
+        db.session.commit() # guardamos para obtener ID
+
+        from werkzeug.security import generate_password_hash
+        import secrets
+        
+        usuario = Usuario(
+            negocio_id=negocio.id,
+            username="admin",
+            password_hash=generate_password_hash("12345"),
+            token=secrets.token_hex(32),
+            rol="dueño"
+        )
+        db.session.add(usuario)
+        db.session.commit()
+
+        # 1. Crear Insumos
         insumos_data = [
             {"nombre": "Leche Entera", "unidad": "L", "stock": 20},
             {"nombre": "Leche Deslactosada", "unidad": "L", "stock": 15},
