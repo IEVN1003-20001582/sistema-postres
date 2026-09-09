@@ -1,3 +1,18 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700;900&display=swap');
+
+body {
+  font-family: 'Fredoka', sans-serif;
+  background-color: #fce7f3; /* pink-100 */
+  background-image: radial-gradient(#f9a8d4 2px, transparent 2px);
+  background-size: 30px 30px;
+}
+
+.brutal-card {
+  @apply bg-white border-4 border-black rounded-3xl shadow-[8px_8px_0_0_#000] transition-transform;
+}
+
+.brutal-btn {
+  @apply border-4 border-black font-black uppercase tracking-wider shadow-[4px_4px_0_0_#000] active:shadow-[0px_0px_0_0_#000] active:translate-x-1 active:translate-y-1 transition-all;
+}

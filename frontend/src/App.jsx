@@ -234,19 +234,29 @@ function App() {
   // ==========================================
   if (pantalla === 'inicio') {
     return (
-      <div className="h-screen w-full bg-yellow-400 flex flex-col items-center justify-center p-4">
-        <motion.h1 initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", bounce: 0.5 }} className="text-6xl md:text-8xl font-black text-purple-800 mb-16 drop-shadow-xl text-center">
-          🕹️ Postres Arcade
-        </motion.h1>
-        <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => { cambiarPantalla('menu'); setCarrito([]); }} className="bg-purple-600 text-white text-4xl md:text-5xl font-bold py-8 px-16 rounded-3xl shadow-[0_12px_0_0_rgba(88,28,135,1)] active:translate-y-3 transition-all">
-          ¡TOCAR PARA PEDIR!
-        </motion.button>
-        <div className="flex gap-4 mt-12">
-          <button onClick={() => cambiarPantalla('cocina')} className="bg-gray-800 text-gray-400 font-bold py-2 px-6 rounded-full opacity-50 hover:opacity-100">👨‍🍳 Modo Cocina</button>
-          <button onClick={() => { cambiarPantalla('dashboard'); cargarDashboard(); }} className="bg-blue-900 text-blue-300 font-bold py-2 px-6 rounded-full opacity-50 hover:opacity-100">📊 Panel Dueño</button>
+      <div className="h-screen w-full flex flex-col items-center justify-center p-4 relative overflow-hidden">
+        <motion.div initial={{ y: -50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="brutal-card p-10 bg-yellow-300 text-center relative max-w-3xl z-10">
+          <div className="absolute -top-10 -left-10 text-8xl rotate-12">🍰</div>
+          <div className="absolute -bottom-10 -right-10 text-8xl -rotate-12">🍦</div>
+          <h1 className="text-7xl font-black text-pink-600 mb-6 drop-shadow-[4px_4px_0_0_#fff]">KIOSCO DE POSTRES</h1>
+          <p className="text-3xl font-bold text-gray-900 border-t-4 border-black pt-4">¡Bienvenido! ¿Qué se te antoja hoy?</p>
+        </motion.div>
+        
+        <div className="flex space-x-8 mt-12 z-10">
+          <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => cambiarPantalla('menu')} className="brutal-btn bg-pink-500 text-white text-4xl py-6 px-12 rounded-2xl flex items-center">
+            <span className="text-5xl mr-4">🛍️</span> ¡HACER PEDIDO!
+          </motion.button>
+          <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => { cargarOrdenesCocina(); cambiarPantalla('cocina'); }} className="brutal-btn bg-blue-500 text-white text-4xl py-6 px-12 rounded-2xl flex items-center">
+            <span className="text-5xl mr-4">🧑‍🍳</span> MODO COCINA
+          </motion.button>
         </div>
+
+        <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => { cargarDashboard(); cambiarPantalla('admin'); }} className="brutal-btn bg-purple-500 text-white text-2xl py-4 px-8 rounded-2xl mt-12 z-10">
+          👑 PANEL DE DUEÑO
+        </motion.button>
+
         {!conectado && (
-          <div className="absolute top-4 bg-red-600 text-white font-bold py-2 px-6 rounded-full animate-pulse shadow-lg text-xl z-50">
+          <div className="absolute top-4 brutal-card bg-red-600 text-white font-bold py-2 px-6 animate-pulse text-xl z-50">
             🔴 Sin conexión con el servidor
           </div>
         )}
@@ -256,93 +266,87 @@ function App() {
 
   if (pantalla === 'exito') {
     return (
-      <div className="h-screen w-full bg-green-500 flex flex-col items-center justify-center p-4">
-        <motion.div initial={{ scale: 0, rotate: -180 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: "spring", bounce: 0.6 }} className="text-9xl mb-8">🎉</motion.div>
-        <h2 className="text-6xl md:text-8xl font-black text-white mb-4 drop-shadow-xl text-center">¡ORDEN RECIBIDA!</h2>
-        <div className="bg-white text-green-700 text-5xl font-black py-4 px-10 rounded-2xl shadow-xl mb-12">TU TICKET ES: #{ticketActual}</div>
-        <p className="text-3xl text-green-100 font-bold mb-16">Pasa a la barra con este número.</p>
-        <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => cambiarPantalla('inicio')} className="bg-white text-green-600 text-3xl font-bold py-6 px-12 rounded-3xl shadow-[0_12px_0_0_rgba(20,83,45,1)] active:translate-y-3 transition-all">
-          Finalizar y Volver
-        </motion.button>
+      <div className="h-screen w-full flex flex-col items-center justify-center p-4 text-center">
+        <motion.div initial={{ scale: 0, rotate: -180 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: "spring", damping: 10 }} className="text-9xl mb-8">
+          🎉
+        </motion.div>
+        <h2 className="text-6xl font-black text-green-600 mb-4 brutal-card bg-white p-6 inline-block">¡ORDEN ENVIADA A COCINA!</h2>
+        <p className="text-3xl font-bold text-gray-800 bg-yellow-300 p-4 border-4 border-black inline-block mt-4">
+          Ticket #{ticketActual}
+        </p>
+        <p className="text-xl font-bold mt-4">Llamaremos a {nombreCliente} cuando esté listo.</p>
+        <button onClick={() => cambiarPantalla('inicio')} className="brutal-btn bg-blue-500 text-white py-4 px-10 text-2xl mt-12 rounded-2xl">
+          🏠 Volver al Inicio
+        </button>
       </div>
     );
   }
 
   if (pantalla === 'dashboard') {
     return (
-      <div className="h-screen w-full bg-slate-900 p-8 overflow-y-auto font-sans flex flex-col md:flex-row gap-8">
+      <div className="h-screen w-full bg-blue-900 p-8 overflow-y-auto font-sans flex flex-col md:flex-row gap-8">
         
         {/* COLUMNA IZQUIERDA: MÉTRICAS Y NUEVO PRODUCTO */}
         <div className="w-full md:w-1/3 flex flex-col gap-6">
-          <div className="flex justify-between items-center border-b-2 border-slate-700 pb-4">
-            <h2 className="text-3xl font-black text-white tracking-wide">📈 ADMIN</h2>
-            <button onClick={() => cambiarPantalla('inicio')} className="bg-slate-700 text-white font-bold py-2 px-4 rounded-lg hover:bg-slate-600">Volver</button>
+          <div className="flex justify-between items-center border-b-4 border-black pb-4 brutal-card bg-white p-4">
+            <h2 className="text-3xl font-black text-purple-800 tracking-wide">👑 DASHBOARD</h2>
+            <button onClick={() => cambiarPantalla('inicio')} className="brutal-btn bg-gray-200 text-gray-800 py-2 px-4 rounded-lg">Volver</button>
           </div>
 
-          <div className="bg-gradient-to-br from-green-500 to-green-700 rounded-2xl p-6 shadow-lg text-white">
+          <div className="brutal-card bg-green-400 p-6 text-black">
             <div className="flex justify-between items-center mb-2">
-              <h3 className="text-xl font-bold opacity-80">INGRESOS</h3>
-              <div className="flex bg-green-900 rounded-lg overflow-hidden text-sm font-bold">
-                <button onClick={() => { setFiltroVentas('hoy'); cargarDashboard('hoy'); }} className={`px-3 py-1 ${filtroVentas === 'hoy' ? 'bg-white text-green-700' : 'text-green-300 hover:bg-green-800'}`}>Hoy</button>
-                <button onClick={() => { setFiltroVentas('semana'); cargarDashboard('semana'); }} className={`px-3 py-1 ${filtroVentas === 'semana' ? 'bg-white text-green-700' : 'text-green-300 hover:bg-green-800'}`}>Sem</button>
-                <button onClick={() => { setFiltroVentas('mes'); cargarDashboard('mes'); }} className={`px-3 py-1 ${filtroVentas === 'mes' ? 'bg-white text-green-700' : 'text-green-300 hover:bg-green-800'}`}>Mes</button>
-                <button onClick={() => { setFiltroVentas('todo'); cargarDashboard('todo'); }} className={`px-3 py-1 ${filtroVentas === 'todo' ? 'bg-white text-green-700' : 'text-green-300 hover:bg-green-800'}`}>Todo</button>
+              <h3 className="text-xl font-black">INGRESOS</h3>
+              <div className="flex bg-white border-4 border-black rounded-lg overflow-hidden text-sm font-bold">
+                <button onClick={() => { setFiltroVentas('hoy'); cargarDashboard('hoy'); }} className={`px-3 py-1 border-r-4 border-black ${filtroVentas === 'hoy' ? 'bg-black text-white' : 'hover:bg-gray-200'}`}>Hoy</button>
+                <button onClick={() => { setFiltroVentas('semana'); cargarDashboard('semana'); }} className={`px-3 py-1 border-r-4 border-black ${filtroVentas === 'semana' ? 'bg-black text-white' : 'hover:bg-gray-200'}`}>Sem</button>
+                <button onClick={() => { setFiltroVentas('mes'); cargarDashboard('mes'); }} className={`px-3 py-1 border-r-4 border-black ${filtroVentas === 'mes' ? 'bg-black text-white' : 'hover:bg-gray-200'}`}>Mes</button>
+                <button onClick={() => { setFiltroVentas('todo'); cargarDashboard('todo'); }} className={`px-3 py-1 ${filtroVentas === 'todo' ? 'bg-black text-white' : 'hover:bg-gray-200'}`}>Todo</button>
               </div>
             </div>
-            <p className="text-5xl font-black">${datosDashboard.ventas_totales.toFixed(2)}</p>
+            <p className="text-6xl font-black">${datosDashboard.ventas_totales.toFixed(2)}</p>
           </div>
           
-          <div className="bg-gradient-to-br from-blue-500 to-blue-700 rounded-2xl p-6 shadow-lg text-white">
-            <h3 className="text-xl font-bold opacity-80 mb-1">ÓRDENES ({filtroVentas.toUpperCase()})</h3>
-            <p className="text-5xl font-black">{datosDashboard.total_ordenes}</p>
+          <div className="brutal-card bg-blue-400 p-6 text-black">
+            <h3 className="text-xl font-black mb-1">ÓRDENES ({filtroVentas.toUpperCase()})</h3>
+            <p className="text-6xl font-black">{datosDashboard.total_ordenes}</p>
           </div>
 
           {/* FORMULARIO CREAR POSTRE */}
-          <div className="bg-slate-800 rounded-2xl p-6 border border-slate-700 shadow-xl mt-4">
-            <h3 className="text-xl font-bold text-white mb-4">🍩 Agregar al Menú</h3>
+          <div className="brutal-card bg-pink-300 p-6 mt-4">
+            <h3 className="text-xl font-black text-black mb-4">🍩 NUEVO POSTRE</h3>
             <form onSubmit={manejarCrearProducto} className="flex flex-col gap-4">
-              <input 
-                type="text" placeholder="Nombre (ej. Malteada)" 
-                value={nuevoProducto.nombre} onChange={(e) => setNuevoProducto({...nuevoProducto, nombre: e.target.value})}
-                className="bg-slate-700 text-white p-3 rounded-xl outline-none focus:ring-2 focus:ring-purple-500"
-              />
-              <input 
-                type="number" placeholder="Precio ($)" 
-                value={nuevoProducto.precio} onChange={(e) => setNuevoProducto({...nuevoProducto, precio: e.target.value})}
-                className="bg-slate-700 text-white p-3 rounded-xl outline-none focus:ring-2 focus:ring-purple-500"
-              />
-              <button type="submit" className="bg-purple-600 text-white font-bold py-3 rounded-xl shadow-[0_4px_0_0_rgba(88,28,135,1)] active:translate-y-1 transition-all">
-                Guardar Postre
-              </button>
+              <input type="text" placeholder="Nombre (ej. Malteada)" value={nuevoProducto.nombre} onChange={(e) => setNuevoProducto({...nuevoProducto, nombre: e.target.value})} className="p-3 rounded-xl outline-none border-4 border-black font-bold" />
+              <input type="number" placeholder="Precio ($)" value={nuevoProducto.precio} onChange={(e) => setNuevoProducto({...nuevoProducto, precio: e.target.value})} className="p-3 rounded-xl outline-none border-4 border-black font-bold" />
+              <button type="submit" className="brutal-btn bg-pink-500 text-white py-3 rounded-xl">GUARDAR</button>
             </form>
           </div>
         </div>
 
         {/* COLUMNA DERECHA: INVENTARIO */}
         <div className="w-full md:w-2/3 flex flex-col">
-          <h3 className="text-2xl font-bold text-slate-300 mb-6 flex items-center mt-2">
-            📦 Almacén y Reabastecimiento
-            <button onClick={() => { sonidoBoton.play(); cargarDashboard(); }} className="ml-4 text-sm bg-slate-800 py-1 px-3 rounded-full hover:bg-slate-700 text-white">🔄 Actualizar</button>
+          <h3 className="text-3xl font-black text-white mb-6 flex items-center mt-2 bg-black inline-block p-2 rounded-xl">
+            📦 ALMACÉN Y REABASTECIMIENTO
+            <button onClick={() => { sonidoBoton.play(); cargarDashboard(); }} className="brutal-btn ml-4 text-sm bg-yellow-400 py-2 px-4 rounded-full text-black">🔄 Actualizar</button>
           </h3>
           
-          <div className="bg-slate-800 rounded-2xl overflow-hidden border border-slate-700 shadow-xl flex-1">
-            <table className="w-full text-left text-slate-300">
-              <thead className="bg-slate-900 text-slate-400 uppercase text-sm">
+          <div className="brutal-card bg-orange-200 overflow-hidden flex-1 p-0 mb-6">
+            <table className="w-full text-left text-black">
+              <thead className="bg-black text-white uppercase text-sm font-black border-b-4 border-black">
                 <tr>
-                  <th className="px-6 py-4 font-bold">Insumo</th>
-                  <th className="px-6 py-4 font-bold text-center">Stock Actual</th>
-                  <th className="px-6 py-4 font-bold">Ingreso (Proveedor)</th>
+                  <th className="px-6 py-4">Insumo</th>
+                  <th className="px-6 py-4 text-center">Stock Actual</th>
+                  <th className="px-6 py-4">Ingreso (Proveedor)</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-700">
+              <tbody className="divide-y-4 divide-black">
                 {datosDashboard.inventario.map(item => (
-                  <tr key={item.id} className="hover:bg-slate-750">
-                    <td className="px-6 py-4 font-semibold text-white">
+                  <tr key={item.id} className="hover:bg-orange-300 transition-colors font-bold text-lg">
+                    <td className="px-6 py-4 border-r-4 border-black">
                       {item.nombre}
-                      {item.stock < 500 && <span className="ml-2 bg-red-900 text-red-400 py-0.5 px-2 rounded-full text-xs font-bold">BAJO</span>}
+                      {item.stock < 500 && <span className="ml-2 bg-red-600 text-white py-1 px-3 rounded-full text-xs font-black border-2 border-black">BAJO</span>}
                     </td>
-                    <td className="px-6 py-4 font-black text-center text-xl text-white">
-                      {item.stock} <span className="text-sm font-normal text-slate-500">{item.unidad}</span>
+                    <td className="px-6 py-4 text-center text-3xl font-black border-r-4 border-black bg-white">
+                      {item.stock} <span className="text-sm text-gray-500 font-bold">{item.unidad}</span>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex gap-2">
@@ -350,13 +354,13 @@ function App() {
                           type="number" placeholder="Cant." min="1"
                           value={cantidadReabastecer[item.id] || ''}
                           onChange={(e) => setCantidadReabastecer({...cantidadReabastecer, [item.id]: e.target.value})}
-                          className="w-20 bg-slate-700 text-white p-2 rounded-lg outline-none text-center"
+                          className="w-24 border-4 border-black p-2 rounded-lg outline-none text-center font-bold"
                         />
                         <button 
                           onClick={() => manejarReabastecer(item.id)}
-                          className="bg-green-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-green-500 active:bg-green-700"
+                          className="brutal-btn bg-green-400 text-black px-4 py-2 rounded-lg text-lg"
                         >
-                          ➕ Sumar
+                          ➕ SUMAR
                         </button>
                       </div>
                     </td>
@@ -366,64 +370,65 @@ function App() {
             </table>
           </div>
 
-          <div className="flex gap-4 mt-6">
+          <div className="flex flex-col md:flex-row gap-6 mt-2">
             {/* FORMULARIO CREAR INSUMO */}
-            <div className="bg-slate-800 rounded-2xl p-6 border border-slate-700 shadow-xl flex-1">
-              <h3 className="text-xl font-bold text-white mb-4">🧅 Nuevo Ingrediente</h3>
+            <div className="brutal-card bg-blue-300 p-6 flex-1">
+              <h3 className="text-xl font-black text-black mb-4">🧅 NUEVO INGREDIENTE</h3>
               <form onSubmit={manejarCrearInsumo} className="flex flex-col gap-4">
-                <input type="text" placeholder="Nombre (ej. Leche)" value={nuevoInsumo.nombre} onChange={(e) => setNuevoInsumo({...nuevoInsumo, nombre: e.target.value})} className="bg-slate-700 text-white p-3 rounded-xl outline-none" />
-                <input type="text" placeholder="Unidad (ej. ml, gramos)" value={nuevoInsumo.unidad_medida} onChange={(e) => setNuevoInsumo({...nuevoInsumo, unidad_medida: e.target.value})} className="bg-slate-700 text-white p-3 rounded-xl outline-none" />
-                <button type="submit" className="bg-blue-600 text-white font-bold py-3 rounded-xl shadow-[0_4px_0_0_rgba(29,78,216,1)] active:translate-y-1">Agregar</button>
+                <input type="text" placeholder="Nombre (ej. Leche)" value={nuevoInsumo.nombre} onChange={(e) => setNuevoInsumo({...nuevoInsumo, nombre: e.target.value})} className="border-4 border-black p-3 rounded-xl outline-none font-bold" />
+                <input type="text" placeholder="Unidad (ej. ml, gramos)" value={nuevoInsumo.unidad_medida} onChange={(e) => setNuevoInsumo({...nuevoInsumo, unidad_medida: e.target.value})} className="border-4 border-black p-3 rounded-xl outline-none font-bold" />
+                <button type="submit" className="brutal-btn bg-blue-500 text-white py-3 rounded-xl">AGREGAR</button>
               </form>
             </div>
 
             {/* FORMULARIO VINCULAR RECETA */}
-            <div className="bg-slate-800 rounded-2xl p-6 border border-slate-700 shadow-xl flex-1">
-              <h3 className="text-xl font-bold text-white mb-4">🔗 Vincular Receta</h3>
+            <div className="brutal-card bg-cyan-300 p-6 flex-1">
+              <h3 className="text-xl font-black text-black mb-4">🔗 VINCULAR RECETA</h3>
               <form onSubmit={manejarCrearReceta} className="flex flex-col gap-4">
-                <select value={recetaForm.producto_id} onChange={(e) => setRecetaForm({...recetaForm, producto_id: e.target.value})} className="bg-slate-700 text-white p-3 rounded-xl outline-none">
+                <select value={recetaForm.producto_id} onChange={(e) => setRecetaForm({...recetaForm, producto_id: e.target.value})} className="border-4 border-black p-3 rounded-xl outline-none font-bold">
                   <option value="">-- Elige un Producto --</option>
                   {productos.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
                 </select>
-                <select value={recetaForm.insumo_id} onChange={(e) => setRecetaForm({...recetaForm, insumo_id: e.target.value})} className="bg-slate-700 text-white p-3 rounded-xl outline-none">
+                <select value={recetaForm.insumo_id} onChange={(e) => setRecetaForm({...recetaForm, insumo_id: e.target.value})} className="border-4 border-black p-3 rounded-xl outline-none font-bold">
                   <option value="">-- Elige un Ingrediente --</option>
                   {datosDashboard.inventario.map(i => <option key={i.id} value={i.id}>{i.nombre} ({i.unidad})</option>)}
                 </select>
-                <input type="number" step="0.1" placeholder="Cantidad a descontar por orden" value={recetaForm.cantidad} onChange={(e) => setRecetaForm({...recetaForm, cantidad: e.target.value})} className="bg-slate-700 text-white p-3 rounded-xl outline-none" />
-                <button type="submit" className="bg-orange-600 text-white font-bold py-3 rounded-xl shadow-[0_4px_0_0_rgba(194,65,12,1)] active:translate-y-1">Guardar Receta</button>
+                <input type="number" step="0.1" placeholder="Gasto por orden" value={recetaForm.cantidad} onChange={(e) => setRecetaForm({...recetaForm, cantidad: e.target.value})} className="border-4 border-black p-3 rounded-xl outline-none font-bold" />
+                <button type="submit" className="brutal-btn bg-cyan-500 text-white py-3 rounded-xl">GUARDAR RECETA</button>
               </form>
             </div>
           </div>
-
         </div>
-
       </div>
     );
   }
 
   if (pantalla === 'cocina') {
     return (
-      <div className="h-screen w-full bg-gray-900 p-8 overflow-y-auto">
-        <div className="flex justify-between items-center mb-10 border-b-4 border-gray-700 pb-6">
-          <h2 className="text-5xl font-black text-white tracking-widest drop-shadow-[0_0_15px_rgba(255,255,255,0.5)]">🔥 MISIONES ACTIVAS (COCINA)</h2>
-          <button onClick={() => cambiarPantalla('inicio')} className="bg-red-600 text-white font-bold py-3 px-6 rounded-xl shadow-[0_6px_0_0_rgba(153,27,27,1)] active:translate-y-1">Salir</button>
+      <div className="h-screen w-full bg-gray-900 p-8 overflow-y-auto pattern-diagonal-lines-sm text-white">
+        <div className="flex justify-between items-center mb-10 border-b-8 border-gray-700 pb-6 bg-black p-6 rounded-3xl shadow-[8px_8px_0_0_#4ade80]">
+          <h2 className="text-5xl font-black text-yellow-400 tracking-widest uppercase">🔥 MISIÓN: COCINA 🔥</h2>
+          <button onClick={() => cambiarPantalla('inicio')} className="brutal-btn bg-red-500 text-white py-3 px-6 rounded-xl text-xl">SALIR DE COCINA</button>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
           {ordenesCocina.length === 0 ? (
-            <h3 className="text-3xl text-gray-500 font-bold col-span-full text-center mt-20">No hay misiones activas. ¡Esperando pedidos!</h3>
+            <h3 className="text-4xl text-white bg-black p-8 border-8 border-white rounded-3xl font-black col-span-full text-center mt-20 rotate-3">Zzz... NO HAY PEDIDOS. ¡ESPERANDO ACCIÓN!</h3>
           ) : (
             <AnimatePresence>
               {ordenesCocina.map((orden) => (
-                <motion.div key={orden.id} initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.5 }} className="bg-gray-800 rounded-3xl p-6 border-4 border-orange-500 flex flex-col justify-between shadow-[0_0_20px_rgba(249,115,22,0.3)] relative overflow-hidden">
-                  <div className="absolute top-0 left-0 bg-orange-500 text-white font-black text-xl px-4 py-1 rounded-br-2xl">#{orden.id} - {orden.nombre_cliente}</div>
-                  <div className="mt-10 mb-6 space-y-3">
+                <motion.div key={orden.id} initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.5, y: -100, rotate: 10 }} className="brutal-card bg-orange-500 p-6 flex flex-col justify-between">
+                  <div className="bg-white text-black font-black text-3xl px-4 py-2 rounded-xl border-4 border-black mb-4 text-center">
+                    TICKET #{orden.id}<br/>
+                    <span className="text-xl text-red-600">{orden.nombre_cliente?.toUpperCase()}</span>
+                  </div>
+                  <div className="mb-6 space-y-3 bg-yellow-100 p-4 border-4 border-black rounded-xl">
                     {orden.detalles.map((item, index) => (
-                      <div key={index} className="flex items-center text-2xl text-white bg-gray-700 p-3 rounded-xl">
-                        <span className="font-black text-orange-400 mr-4">x{item.cantidad}</span><span className="font-bold">{item.nombre}</span>
+                      <div key={index} className="flex items-center text-xl text-black border-b-2 border-black pb-2">
+                        <span className="font-black text-red-600 mr-4 text-3xl">x{item.cantidad}</span><span className="font-bold">{item.nombre}</span>
                       </div>
                     ))}
                   </div>
-                  <button onClick={() => completarOrden(orden.id)} className="w-full bg-green-500 text-white text-2xl font-black py-4 rounded-xl shadow-[0_6px_0_0_rgba(21,128,61,1)] active:translate-y-2">¡ORDEN LISTA! 🛎️</button>
+                  <button onClick={() => completarOrden(orden.id)} className="brutal-btn w-full bg-green-400 text-black text-3xl py-4 rounded-xl">¡LISTO! ✅</button>
                 </motion.div>
               ))}
             </AnimatePresence>
@@ -432,32 +437,32 @@ function App() {
 
         {/* MODAL GUÍA INTERACTIVA */}
         {mostrarGuia && (
-          <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-            <motion.div initial={{ scale: 0.8, opacity: 0, y: 50 }} animate={{ scale: 1, opacity: 1, y: 0 }} className="bg-white rounded-3xl p-8 max-w-lg w-full text-center border-8 border-pink-400 relative">
-              <button onClick={() => { setMostrarGuia(false); setFiltroGuia(''); }} className="absolute top-4 right-4 bg-gray-200 text-gray-700 w-10 h-10 rounded-full font-bold text-xl hover:bg-gray-300">X</button>
+          <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ scale: 0.8, opacity: 0, y: 50 }} animate={{ scale: 1, opacity: 1, y: 0 }} className="brutal-card bg-white p-8 max-w-lg w-full text-center relative">
+              <button onClick={() => { setMostrarGuia(false); setFiltroGuia(''); }} className="brutal-btn absolute -top-6 -right-6 bg-red-500 text-white w-12 h-12 rounded-full text-2xl">X</button>
               
-              <div className="text-6xl mb-4">🧙‍♂️</div>
-              <h2 className="text-3xl font-black text-pink-600 mb-6">Elige tu Aventura Dulce</h2>
+              <div className="text-8xl mb-4 bg-pink-300 inline-block rounded-full p-4 border-4 border-black">🧙‍♂️</div>
+              <h2 className="text-4xl font-black text-black mb-6 uppercase">Tu Guía Dulce</h2>
 
               {pasoGuia === 1 && (
-                <div className="space-y-4">
-                  <p className="text-xl font-bold text-gray-700 mb-6">¿Qué se te antoja hoy?</p>
-                  <button onClick={() => setPasoGuia(2)} className="w-full bg-blue-100 border-4 border-blue-400 text-blue-700 font-bold text-2xl py-4 rounded-2xl hover:bg-blue-200 transition-colors">🧊 Algo Fresco y Frío</button>
-                  <button onClick={() => setPasoGuia(3)} className="w-full bg-orange-100 border-4 border-orange-400 text-orange-700 font-bold text-2xl py-4 rounded-2xl hover:bg-orange-200 transition-colors">🔥 Algo Horneado o Caliente</button>
+                <div className="space-y-6">
+                  <p className="text-2xl font-bold text-gray-700 bg-yellow-200 p-4 border-4 border-black">¿Qué se te antoja hoy?</p>
+                  <button onClick={() => setPasoGuia(2)} className="brutal-btn w-full bg-cyan-300 text-black text-3xl py-4 rounded-2xl">🧊 Algo Fresco</button>
+                  <button onClick={() => setPasoGuia(3)} className="brutal-btn w-full bg-orange-400 text-black text-3xl py-4 rounded-2xl">🔥 Algo Horneado</button>
                 </div>
               )}
 
               {pasoGuia === 2 && (
-                <div className="space-y-4">
-                  <p className="text-xl font-bold text-gray-700 mb-6">¡Perfecto para refrescarte! Te filtraremos las opciones frías.</p>
-                  <button onClick={() => { setFiltroGuia('frio'); setMostrarGuia(false); }} className="w-full bg-blue-500 text-white font-bold text-2xl py-4 rounded-2xl hover:bg-blue-600 transition-colors shadow-lg">¡Ver menú frío! 🍦</button>
+                <div className="space-y-6">
+                  <p className="text-xl font-bold text-black bg-cyan-100 p-4 border-4 border-black">¡Filtraremos el menú con nuestras mejores bebidas y helados fríos!</p>
+                  <button onClick={() => { setFiltroGuia('frio'); setMostrarGuia(false); }} className="brutal-btn w-full bg-blue-500 text-white text-3xl py-4 rounded-2xl">¡VER MENÚ! 🍦</button>
                 </div>
               )}
 
               {pasoGuia === 3 && (
-                <div className="space-y-4">
-                  <p className="text-xl font-bold text-gray-700 mb-6">Ideal para acompañar una buena charla. Te mostraremos opciones horneadas.</p>
-                  <button onClick={() => { setFiltroGuia('horneado'); setMostrarGuia(false); }} className="w-full bg-orange-500 text-white font-bold text-2xl py-4 rounded-2xl hover:bg-orange-600 transition-colors shadow-lg">¡Ver menú horneado! 🍰</button>
+                <div className="space-y-6">
+                  <p className="text-xl font-bold text-black bg-orange-100 p-4 border-4 border-black">¡Filtraremos el menú con nuestros mejores postres recién horneados!</p>
+                  <button onClick={() => { setFiltroGuia('horneado'); setMostrarGuia(false); }} className="brutal-btn w-full bg-red-500 text-white text-3xl py-4 rounded-2xl">¡VER MENÚ! 🍰</button>
                 </div>
               )}
             </motion.div>
@@ -469,61 +474,62 @@ function App() {
 
   // default: MENU Y CARRITO
   return (
-    <div className="h-screen w-full flex bg-blue-50 overflow-hidden relative">
+    <div className="h-screen w-full flex overflow-hidden relative">
         {!conectado && (
-          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-red-600 text-white font-bold py-2 px-6 rounded-full animate-pulse shadow-lg text-xl z-50">
+          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 brutal-card bg-red-600 text-white font-bold py-2 px-6 animate-pulse text-xl z-50">
             🔴 Sin conexión con el servidor
           </div>
         )}
-      <div className="w-2/3 p-8 overflow-y-auto">
-        <h2 className="text-5xl font-black text-blue-900 mb-10 drop-shadow-md">ELIGE TU POSTRE 🍰</h2>
+      <div className="w-2/3 p-8 overflow-y-auto pattern-diagonal-lines-sm bg-yellow-200">
+        <h2 className="text-6xl font-black text-pink-600 mb-10 drop-shadow-[4px_4px_0_0_#fff] bg-white inline-block p-4 border-4 border-black rotate-2">ELIGE TU POSTRE 🍰</h2>
         
         {/* BOTÓN GUÍA */}
-        <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => { setMostrarGuia(true); setPasoGuia(1); setFiltroGuia(''); }} className="fixed bottom-6 right-6 bg-pink-500 text-white p-4 rounded-full shadow-2xl flex items-center justify-center border-4 border-white z-40">
-          <span className="text-3xl mr-2">🗺️</span>
-          <span className="font-bold text-xl">¿Qué pido?</span>
+        <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => { setMostrarGuia(true); setPasoGuia(1); setFiltroGuia(''); }} className="brutal-btn fixed bottom-6 right-[35%] bg-cyan-400 text-black p-4 rounded-full flex items-center justify-center z-40 text-4xl w-24 h-24">
+          🗺️
         </motion.button>
 
         {/* MENÚ PRINCIPAL */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-32 relative z-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-32 relative z-10">
           <AnimatePresence>
             {productos.filter(p => p.nombre.toLowerCase().includes(filtroGuia.toLowerCase()) || (filtroGuia === 'frio' && (p.nombre.toLowerCase().includes('helado') || p.nombre.toLowerCase().includes('frap') || p.nombre.toLowerCase().includes('malteada'))) || (filtroGuia === 'horneado' && (p.nombre.toLowerCase().includes('pastel') || p.nombre.toLowerCase().includes('crepa') || p.nombre.toLowerCase().includes('pan') || p.nombre.toLowerCase().includes('caf')))).map((producto) => (
-              <motion.div key={producto.id} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => agregarAlCarrito(producto)} className="bg-white rounded-3xl p-6 flex flex-col items-center justify-between border-4 border-gray-200 shadow-[0_8px_0_0_rgba(209,213,219,1)] cursor-pointer select-none">
-                <div className="text-7xl mb-4">{producto.nombre.includes('Frappé') || producto.nombre.includes('Malteada') ? '🥤' : '🎂'}</div>
-                <h3 className="text-2xl font-bold text-center text-gray-800 mb-4">{producto.nombre}</h3>
-                <div className="bg-green-500 text-white text-2xl font-black py-2 px-6 rounded-xl shadow-[0_4px_0_0_rgba(21,128,61,1)]">${producto.precio.toFixed(2)}</div>
+              <motion.div key={producto.id} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => agregarAlCarrito(producto)} className="brutal-card bg-white p-6 flex flex-col items-center justify-between cursor-pointer select-none">
+                <div className="text-7xl mb-6">{producto.nombre.includes('Frappé') || producto.nombre.includes('Malteada') ? '🥤' : '🎂'}</div>
+                <h3 className="text-2xl font-black text-center text-black mb-6 uppercase tracking-tight leading-tight">{producto.nombre}</h3>
+                <div className="brutal-card bg-green-400 text-black text-3xl font-black py-2 px-6 shadow-none">
+                  ${producto.precio.toFixed(2)}
+                </div>
               </motion.div>
             ))}
           </AnimatePresence>
         </div>
       </div>
-      <div className="w-1/3 bg-white border-l-8 border-gray-200 p-6 flex flex-col shadow-2xl relative z-10">
-        <h2 className="text-4xl font-black text-gray-800 mb-6 border-b-4 border-gray-100 pb-4">TU ORDEN 📋</h2>
+      <div className="w-1/3 bg-white border-l-8 border-black p-8 flex flex-col shadow-[-10px_0_0_0_rgba(0,0,0,0.1)] relative z-10">
+        <h2 className="text-5xl font-black text-black mb-6 border-b-8 border-black pb-4">TU ORDEN 📋</h2>
         <div className="flex-1 overflow-y-auto pr-2 space-y-4">
-          {carrito.length === 0 ? <p className="text-xl text-gray-400 font-bold text-center mt-10">Aún no hay postres en tu orden.</p> : (
+          {carrito.length === 0 ? <p className="text-2xl text-gray-400 font-black text-center mt-10">Aún no hay postres en tu orden.</p> : (
             <AnimatePresence>
               {carrito.map((item, index) => (
-                <motion.div key={index} initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} className="bg-gray-100 rounded-2xl p-4 flex justify-between items-center shadow-sm">
-                  <div className="flex flex-col"><span className="font-bold text-xl text-gray-800">{item.nombre}</span><span className="text-gray-500 font-semibold">x {item.cantidad}</span></div>
-                  <span className="font-black text-xl text-purple-700">${(item.precio * item.cantidad).toFixed(2)}</span>
+                <motion.div key={index} initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} className="brutal-card bg-pink-200 p-4 flex justify-between items-center">
+                  <div className="flex flex-col"><span className="font-black text-2xl text-black">{item.nombre}</span><span className="text-gray-700 font-black text-xl">x {item.cantidad}</span></div>
+                  <span className="font-black text-3xl text-black bg-white px-2 py-1 border-4 border-black">${(item.precio * item.cantidad).toFixed(2)}</span>
                 </motion.div>
               ))}
             </AnimatePresence>
           )}
         </div>
-        <div className="pt-6 border-t-4 border-gray-100 mt-4">
+        <div className="pt-6 border-t-8 border-black mt-4">
           <input 
             type="text" 
-            placeholder="¿Cuál es tu nombre?" 
+            placeholder="¿CUÁL ES TU NOMBRE?" 
             value={nombreCliente} 
             onChange={(e) => setNombreCliente(e.target.value)}
-            className="w-full text-2xl p-4 mb-4 border-4 border-purple-200 rounded-2xl outline-none focus:border-purple-500 font-bold text-gray-700"
+            className="w-full text-2xl p-4 mb-6 border-4 border-black rounded-xl outline-none font-black text-black bg-cyan-100 placeholder-gray-500"
           />
-          <div className="flex justify-between items-center mb-6"><span className="text-2xl font-bold text-gray-600">TOTAL:</span><span className="text-4xl font-black text-green-600">${totalOrden.toFixed(2)}</span></div>
-          <motion.button onClick={enviarOrden} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.95 }} disabled={carrito.length === 0} className={`w-full text-white text-3xl font-black py-6 rounded-2xl shadow-[0_8px_0_0_rgba(0,0,0,0.2)] active:translate-y-2 transition-all duration-75 ${carrito.length === 0 ? 'bg-gray-300 shadow-[0_8px_0_0_rgba(156,163,175,1)] cursor-not-allowed' : 'bg-green-500 shadow-[0_8px_0_0_rgba(21,128,61,1)]'}`}>
-            CONFIRMAR ORDEN ✅
+          <div className="flex justify-between items-center mb-6"><span className="text-4xl font-black text-black">TOTAL:</span><span className="text-5xl font-black text-green-500 drop-shadow-[2px_2px_0_0_#000]">${totalOrden.toFixed(2)}</span></div>
+          <motion.button onClick={enviarOrden} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.95 }} disabled={carrito.length === 0} className={`w-full text-black text-4xl py-6 rounded-2xl ${carrito.length === 0 ? 'bg-gray-300 border-4 border-gray-500 text-gray-500 cursor-not-allowed' : 'brutal-btn bg-green-400'}`}>
+            ¡CONFIRMAR! ✅
           </motion.button>
-          <button onClick={() => cambiarPantalla('inicio')} className="w-full mt-6 bg-red-100 text-red-600 text-xl font-bold py-3 rounded-xl active:bg-red-200 transition-colors">Cancelar y volver</button>
+          <button onClick={() => cambiarPantalla('inicio')} className="w-full mt-6 text-red-600 text-2xl font-black py-3 rounded-xl border-4 border-transparent hover:border-red-600 transition-colors">CANCELAR Y VOLVER</button>
         </div>
       </div>
     </div>
